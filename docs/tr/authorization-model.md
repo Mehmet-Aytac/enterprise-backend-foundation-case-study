@@ -1,158 +1,156 @@
-# Authorization Model
+# Yetkilendirme Modeli
 
-Bu doküman, private enterprise backend foundation içinde ele alınan authorization model'i özetler.
+Bu doküman, özel backend altyapı temelinde ele alınan yetkilendirme (authorization) modelini özetler.
 
-Amaç, access decisions'ı centralize etmek ve permission logic'in controller/service içine dağılmasını engellemektir.
+Amaç, erişim kararlarını merkezi hale getirmek ve izin mantığının controller veya servis katmanlarına dağılmasını engellemektir.
 
-## Core Principle
+## Temel İlke
 
-Authorization şu şekilde tasarlandı:
+Yetkilendirme şu ilkelerle tasarlandı:
 
-- explicit
-- centralized
-- deterministic
-- deny-by-default
-- tenant-aware
-- auditable
-- client claims yerine server-derived facts temelli
+- açık
+- merkezi
+- belirleyici
+- varsayılan olarak reddeden
+- kiracı farkındalığı olan
+- denetlenebilir
+- istemci iddiaları yerine sunucu tarafından doğrulanan bilgilere dayanan
 
-Route hangi permission'ı gerektirdiğini declare eder. Permission engine, authenticated principal'ın target resource üzerinde bu action'ı yapıp yapamayacağına karar verir.
+Rota hangi izni istediğini bildirir. Yetki karar motoru (permission engine), kimliği doğrulanmış aktörün hedef kaynak üzerinde bu işlemi yapıp yapamayacağına karar verir.
 
-Gündelik benzetmeyle: controller kendi lokal tahminleriyle güvenlik görevlisi gibi davranmamalı; her route aynı ana güvenlik kapısından geçmelidir.
+Gündelik benzetmeyle: controller kendi yerel tahminleriyle güvenlik görevlisi gibi davranmamalı; her rota aynı ana güvenlik kapısından geçmelidir.
 
-## Decision Inputs
+## Karar Girdileri
 
-Güvenli authorization decision trusted inputs gerektirir.
+Güvenli yetkilendirme kararı güvenilir girdiler gerektirir.
 
-Tipik inputs:
+Tipik girdiler:
 
-- authenticated principal type: human user, service account veya system actor
-- tenant context
-- requested resource type ve action
-- route permission key
-- ownership önemliyse resource owner user ID
-- branch, department, team, region, location veya custom dimension facts
-- resource classification veya sensitivity
-- ReBAC için relationship facts
-- PBAC için tenant policy rules
-- sensitive operations için session trust level
+- aktör türü: insan kullanıcı, servis hesabı veya sistem aktörü
+- kiracı bağlamı
+- istenen kaynak türü ve eylem
+- rota izin anahtarı
+- sahiplik önemliyse kaynak sahibi kullanıcı kimliği
+- şube, departman, ekip, bölge, konum veya özel boyut bilgileri
+- kaynak sınıflandırması veya hassasiyet seviyesi
+- ilişki tabanlı erişim için ilişki bilgileri
+- politika tabanlı erişim için kiracı politikaları
+- hassas işlemler için oturum güven düzeyi
 
-Önemli kural: resource facts server-side derived olmalıdır. Client-supplied ownership, tenant ID, branch code, classification veya relationship data authorization için güvenilir değildir.
+Önemli kural: kaynak bilgileri sunucu tarafında doğrulanmalıdır. İstemciden gelen sahiplik, kiracı kimliği, şube kodu, sınıflandırma veya ilişki bilgisi yetkilendirme için güvenilir kabul edilmez.
 
-## Access-Control Styles
+## Erişim Kontrol Yaklaşımları
 
-Private prototype tek bir permission style yerine combined model araştırdı.
+Özel prototip tek bir izin tarzı yerine birleşik bir model araştırdı.
 
-### RBAC
+### Rol Tabanlı Erişim Kontrolü (RBAC)
 
-Role-based access control, role-to-permission assignment için kullanıldı.
+Rol tabanlı erişim kontrolü, rollerin izinlerle eşleştirilmesi için kullanılır.
 
-Örnek konseptler:
+Örnek fikirler:
 
-- owner role tenant settings yönetebilir
-- auditor role audit logs okuyabilir
-- operator role operational records güncelleyebilir
+- sahip rolü kiracı ayarlarını yönetebilir
+- denetçi rolü denetim kayıtlarını okuyabilir
+- operatör rolü operasyonel kayıtları güncelleyebilir
 
-RBAC base grant model sağlar.
+RBAC temel izin modelini sağlar.
 
-### ABAC
+### Öznitelik Tabanlı Erişim Kontrolü (ABAC)
 
-Attribute-based access control, trusted subject/resource/request/scope attributes üzerinden ek koşullar için kullanılır.
+Öznitelik tabanlı erişim kontrolü, güvenilir özne/kaynak/istek/kapsam bilgilerine dayalı ek koşullar için kullanılır.
 
-Örnek konseptler:
+Örnek fikirler:
 
-- user clearance level resource classification ile uyumluysa allow
-- tenant governance rule required dimension'a izin vermiyorsa deny
-- sensitive action için stronger session trust gerektir
+- kullanıcının yetki seviyesi kaynak sınıflandırmasıyla uyumluysa izin ver
+- kiracı yönetişim kuralı gerekli boyuta izin vermiyorsa reddet
+- hassas işlem için daha güçlü oturum güveni iste
 
-ABAC inputs server-derived veya approved attributes olmalıdır, arbitrary client-provided values olmamalıdır.
+ABAC girdileri sunucu tarafından doğrulanmış veya onaylanmış özellikler olmalıdır.
 
-### ReBAC
+### İlişki Tabanlı Erişim Kontrolü (ReBAC)
 
-Relationship-based access control resource-bound relationship checks için kullanılır.
+İlişki tabanlı erişim kontrolü, kaynağa bağlı ilişki kontrolleri için kullanılır.
 
-Örnek konseptler:
+Örnek fikirler:
 
-- manager subordinate'a ait records okuyabilir
-- user yalnızca exact relationship tuple varsa resource'a erişebilir
+- yönetici, astına ait kayıtları okuyabilir
+- kullanıcı yalnızca kesin ilişki kaydı varsa kaynağa erişebilir
 
-Safety rule: ReBAC checks exact resource type ve resource ID'ye bağlı olmalıdır. Broad relationship label yeterli değildir.
+Güvenlik kuralı: ReBAC kontrolleri kesin kaynak türüne ve kaynak kimliğine bağlı olmalıdır. Geniş ilişki etiketi tek başına yeterli değildir.
 
-### PBAC
+### Politika Tabanlı Erişim Kontrolü (PBAC)
 
-Policy-based access control tenant-level allow/deny policy rules için kullanılır.
+Politika tabanlı erişim kontrolü, kiracı seviyesindeki izin/ret kuralları için kullanılır.
 
-Beklenen davranış deny-overrides'tır. Matching deny policy varsa allow'dan önce kazanır. Target resource/action için allow policies varsa allow gate geçmelidir.
+Beklenen davranışta ret kuralı izin kuralından önce gelir. Hedef kaynak/eylem için izin politikaları varsa en az bir izin kuralı geçmelidir.
 
-## Tenant Boundary First
+## Kiracı Sınırı Önce Gelir
 
-Tenant isolation first-order security boundary'dir.
+Kiracı yalıtımı birinci sınıf güvenlik sınırıdır.
 
-Permission engine, explicitly authorized system-administration paths dışında cross-tenant access'i business-level permission rules öncesinde reddetmelidir.
+Yetki karar motoru, açıkça yetkilendirilmiş sistem yönetimi yolları dışında kiracılar arası erişimi iş seviyesi izin kurallarından önce reddetmelidir.
 
-Çünkü role, relationship veya policy grant target object başka tenant'a aitse güvenli değildir.
+Çünkü hedef nesne başka kiracıya aitse rol, ilişki veya politika izni güvenli değildir.
 
-## Scoped Permissions
+## Kapsamlı İzinler
 
-Prototype şu organization-style scope constraints'i destekleyecek şekilde düşünüldü:
+Prototip şu kapsam kısıtlarını destekleyecek şekilde düşünülmüştür:
 
-- self-only
-- branch-only
-- department-only
-- team-only
-- region/location scopes
-- custom tenant dimensions
-- required relationships
-- required owner relationships
-- required session trust
+- yalnızca kendi kayıtları
+- yalnızca aynı şube
+- yalnızca aynı departman
+- yalnızca aynı ekip
+- bölge/konum kapsamları
+- özel kiracı boyutları
+- gerekli ilişkiler
+- gerekli sahip ilişkileri
+- gerekli oturum güven düzeyi
 
-Önemli hardening dersi: scoped permissions, required target-resource facts eksikse fail closed davranmalıdır.
+Önemli ders: kapsamlı izinler, gerekli hedef kaynak bilgisi eksikse güvenli biçimde reddetmelidir.
 
-Örneğin permission branch-scoped ise ve route target resource branch code'u trusted server-side data'dan sağlayamıyorsa güvenli karar deny'dır.
+## Rota Seviyesi Örüntü
 
-## Route-Level Pattern
-
-Protected route kavramsal olarak şu sırayı izlemelidir:
+Korumalı rota kavramsal olarak şu sırayı izlemelidir:
 
 ```text
-authenticate request
-check tenant module / feature availability if relevant
-reject machine principals when a human actor is required
-resolve trusted resource facts from the server/database
-evaluate centralized permission decision
-execute controller/service logic
-project response fields according to grants
-write audit/security evidence when needed
+isteği kimlik doğrulamadan geçir
+gerekirse kiracı modülü / özellik durumunu kontrol et
+insan aktör gerekiyorsa makine aktörünü reddet
+güvenilir kaynak bilgilerini sunucu/veritabanından çöz
+merkezi yetki kararını değerlendir
+controller/servis mantığını çalıştır
+yanıt alanlarını izinlere göre filtrele
+gerekiyorsa denetim/güvenlik kaydı oluştur
 ```
 
-Route permission logic'i service methods içine ikinci ve daha zayıf bir access sistemi olarak saklamamalıdır. Services tenant-owned existence ve consistency enforce edebilir; ama permission engine'in yerini almamalıdır.
+Rota izin mantığını servis metotları içine ikinci ve daha zayıf bir erişim sistemi olarak saklamamalıdır. Servisler kiracıya ait varlık ve tutarlılık kontrolleri yapabilir; ancak yetki karar motorunun yerini almamalıdır.
 
-## Service Account Boundaries
+## Servis Hesabı Sınırları
 
-Service accounts machine principals olarak ele alındı, users olarak değil.
+Servis hesapları kullanıcı değil, makine aktörleri olarak ele alındı.
 
-Design rules:
+Tasarım kuralları:
 
-- service accounts explicit tenant-scoped permissions alır
-- service accounts human user memberships inherit etmez
-- human-only operations service-account principals'ı reddeder
-- sensitive permissions explicit service-account-sensitive approval gerektirir
-- audit/security events service account'ı user gibi göstermeden machine actor fields kullanır
+- servis hesapları açık kiracı kapsamlı izinler alır
+- servis hesapları insan kullanıcı üyeliklerini devralmaz
+- insan aktör gerektiren işlemler servis hesabını reddeder
+- hassas izinler servis hesabı için ayrıca açık onay gerektirir
+- denetim/güvenlik kayıtları servis hesabını insan kullanıcı gibi göstermez
 
-Bu, API key'in sessizce human administrator'a dönüşmesini engeller.
+Bu, API anahtarının sessizce insan yöneticisine dönüşmesini engeller.
 
-## Field Projection Is Separate
+## Alan Filtreleme Ayrıdır
 
-Route authorization principal'ın resource'a erişip erişemeyeceğine karar verir.
+Rota yetkilendirmesi, aktörün kaynağa erişip erişemeyeceğine karar verir.
 
-Field projection response içinde hangi alanların dönebileceğine karar verir.
+Alan filtreleme (field projection), yanıt içinde hangi alanların dönebileceğine karar verir.
 
-Bu ayrım önemlidir; çünkü bir user record listesi okuyabilir ama PII, confidential attributes, financial data, performance data veya security-sensitive metadata görme hakkına sahip olmayabilir.
+Bu ayrım önemlidir; çünkü bir kullanıcı kayıt listesi okuyabilir ama kişisel veri, gizli alan, finansal veri, performans verisi veya güvenliğe duyarlı üstveri görme hakkına sahip olmayabilir.
 
-## Lessons From Hardening
+## Sertleştirme Dersi
 
-En önemli authorization dersi: missing server-derived facts zararsız kabul edilmemelidir.
+En önemli yetkilendirme dersi şudur: eksik sunucu doğrulamalı bilgiler zararsız kabul edilmemelidir.
 
-Bir permission ownership, branch, department, team, relationship, classification veya başka resource fact'lere bağlıysa route bu fact'leri trusted server-side data'dan sağlamalıdır. Sağlayamıyorsa decision fail closed olmalıdır.
+Bir izin sahiplik, şube, departman, ekip, ilişki veya sınıflandırmaya bağlıysa rota bu bilgileri güvenilir sunucu verisinden sağlamalıdır. Sağlayamıyorsa karar güvenli biçimde reddetmelidir.
 
-Bu kural, “permission check var” ile “permission check güvenilir” arasındaki farktır.
+Bu kural, “izin kontrolü var” ile “izin kontrolü güvenilir” arasındaki farktır.
