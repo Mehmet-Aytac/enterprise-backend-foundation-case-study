@@ -1,5 +1,7 @@
 # Enterprise Backend Foundation Case Study
 
+Language: [English](./README.md) | [Türkçe](./README.tr.md)
+
 Public architecture and validation case study for a **private, active-development, production-oriented backend foundation**.
 
 The private project explores how a multi-tenant ERP/internal-tools backend can be structured around authentication, authorization, tenant isolation, auditability, response minimization, validation, and deployment hardening.
@@ -64,6 +66,7 @@ The important design idea is simple: business modules should not invent their ow
 |---|---|
 | Tenant isolation | Tenant boundary is treated as a first-order security boundary before business permissions. |
 | Authorization | Access decisions are centralized and designed to fail closed when required server-derived facts are missing. |
+| Permission engine | The central decision point combines principal type, tenant boundary, route permission, scoped grants, relationship checks, tenant policies, session trust, and resource facts. |
 | Auth/session safety | Browser-cookie flows, API token flows, refresh-token rotation, reuse handling, and MFA concurrency were reviewed as separate concerns. |
 | Sensitive data exposure | Responses are designed around classification and projection instead of returning raw ORM objects. |
 | Auditability | Audit logs and security events are separated, dispatched through an outbox, and designed with tamper-evident hash-chain verification. |
@@ -77,6 +80,7 @@ The important design idea is simple: business modules should not invent their ow
 | [Architecture Overview](./docs/architecture-overview.md) | System layers, request pipeline, module contract, and why shared enforcement points matter. |
 | [Security Model](./docs/security-model.md) | Security goals, protected assets, trust boundaries, major threats, and controls. |
 | [Authorization Model](./docs/authorization-model.md) | RBAC/ABAC/ReBAC/PBAC, tenant boundary checks, scoped permissions, and service-account rules. |
+| [Permission Engine Decision Flow](./docs/permission-engine-decision-flow.md) | Step-by-step explanation of the central authorization decision process. |
 | [Audit and Integrity](./docs/audit-integrity.md) | Audit/security event separation, outbox processing, hash-chain design, and limits of tamper evidence. |
 | [Data Classification](./docs/data-classification.md) | Response minimization, field projection, and safe handling of PII/confidential/security-sensitive fields. |
 | [Testing and Validation](./docs/testing-and-validation.md) | Validation matrix, regression findings, local verification scope, and what the checks do not prove. |
@@ -124,7 +128,7 @@ A useful reading path is:
 
 1. Start with this README.
 2. Read [Architecture Overview](./docs/architecture-overview.md) to understand the system shape.
-3. Read [Security Model](./docs/security-model.md) and [Authorization Model](./docs/authorization-model.md) to understand the main safety decisions.
+3. Read [Security Model](./docs/security-model.md), [Authorization Model](./docs/authorization-model.md), and [Permission Engine Decision Flow](./docs/permission-engine-decision-flow.md) to understand the main safety decisions.
 4. Read [Testing and Validation](./docs/testing-and-validation.md) to see how claims were checked.
 5. Read [Limitations](./docs/limitations.md) to understand what is not being claimed.
 6. Use [Interview Walkthrough](./docs/interview-walkthrough.md) for a compact explanation path.
