@@ -1,86 +1,86 @@
-# Lessons Learned
+# Öğrenilen Dersler
 
-Bu doküman, private enterprise backend foundation case study sürecinden çıkarılan ana dersleri özetler.
+Bu doküman, özel backend altyapı temeli case study sürecinden çıkarılan ana dersleri özetler.
 
-## 1. Architecture üretmek kolay, güvenmek zordur
+## 1. Mimari Üretmek Kolay, Güvenmek Zordur
 
-AI-assisted development çok hızlı şekilde structure üretebilir.
+AI destekli geliştirme kısa sürede çok fazla yapı üretebilir.
 
-Ancak architecture anlamlı hale ancak assumptions test edildiğinde gelir:
+Ancak mimari yalnızca varsayımlar test edildiğinde anlamlı hale gelir:
 
-- concurrent requests altında ne olur?
-- route gerekli authorization fact'i sağlamazsa ne olur?
-- response yanlışlıkla fazla field döndürürse ne olur?
-- dirty local database integration result'ı etkilerse ne olur?
+- Eşzamanlı istekler altında ne olur?
+- Rota gerekli yetkilendirme bilgisini sağlamazsa ne olur?
+- Yanıt yanlışlıkla fazla alan döndürürse ne olur?
+- Kirli yerel veritabanı entegrasyon sonucunu etkilerse ne olur?
 
-En değerli kısım file üretmek değil; behavior review etmek, targeted checks yazmak, edge case bulmak ve sistemi iteratively harden etmekti.
+En değerli kısım dosya üretmek değil; davranışı incelemek, hedefli kontroller yazmak, uç durum bulmak ve sistemi tekrar tekrar sertleştirmekti.
 
-## 2. Missing data fail closed olmalıdır
+## 2. Eksik Bilgi Güvenli Ret Üretmelidir
 
-Authorization için gerekli server-derived fact eksikse sistem allow varsaymamalıdır.
+Yetkilendirme için gerekli sunucu doğrulamalı bilgi eksikse sistem izin varmış gibi davranmamalıdır.
 
-Permission branch, department, team, ownership, relationship veya classification'a bağlıysa bu facts trusted server-side data'dan gelmelidir.
+İzin; şube, departman, ekip, sahiplik, ilişki veya sınıflandırmaya bağlıysa bu bilgiler güvenilir sunucu verisinden gelmelidir.
 
-Sistem izinli olduğunu kanıtlayamıyorsa deny etmelidir.
+Sistem izinli olduğunu kanıtlayamıyorsa reddetmelidir.
 
-## 3. Permission engine basit role check değildir
+## 3. Yetki Karar Motoru Basit Rol Kontrolü Değildir
 
-Role grant yalnızca başlangıçtır.
+Rol izni yalnızca başlangıçtır.
 
-Güvenli karar için tenant boundary, principal type, scoped grants, relationship checks, policy rules, session trust ve resource facts birlikte değerlendirilmelidir.
+Güvenli karar için kiracı sınırı, aktör tipi, kapsam kısıtları, ilişki kontrolleri, politika kuralları, oturum güven düzeyi ve kaynak bilgileri birlikte değerlendirilmelidir.
 
-Bu yüzden permission engine bu case study'nin en önemli parçalarından biridir.
+Bu yüzden yetki karar motoru bu case study'nin en önemli parçalarından biridir.
 
-## 4. Browser ve API auth ayrı düşünülmelidir
+## 4. Tarayıcı ve API Kimlik Akışları Ayrı Düşünülmelidir
 
-Browser cookie authentication ve explicit API token authentication farklı risklere sahiptir.
+Tarayıcı çerez kimlik doğrulaması ve açık API erişim akışları farklı risklere sahiptir.
 
-Bu iki flow aynıymış gibi davranmak yerine ayrı davranış, ayrı validation ve ayrı dokümantasyon gerektirir.
+Bu iki akış aynıymış gibi davranmak yerine ayrı davranış, ayrı doğrulama ve ayrı dokümantasyon gerektirir.
 
-## 5. Tamper-evident immutable demek değildir
+## 5. Kurcalamayı Belli Etmek Değişmezlik Demek Değildir
 
-Audit hash-chain faydalıdır ama magic değildir.
+Denetim kayıt zincirleri faydalıdır ama sihirli değildir.
 
-Application-level modification, deletion veya ordering problemlerini tespit etmeye yardım eder. Ancak database storage'ı tek başına immutable yapmaz.
+Uygulama seviyesinde değiştirme, silme veya sıralama sorunlarını fark etmeye yardım eder. Ancak veritabanını tek başına değiştirilemez hale getirmez.
 
-Doğru ifade tamper-evident'tır, tamper-proof değil.
+Doğru ifade kurcalamayı belli eden yapıdır; kurcalanamaz yapı değildir.
 
-## 6. Documentation sadece feature anlatmamalıdır
+## 6. Dokümantasyon Sadece Özellik Anlatmamalıdır
 
-İyi portfolio dokümantasyonu yalnızca “ne var?” sorusunu değil, “ne iddia edilmiyor?” sorusunu da cevaplamalıdır.
+İyi portfolyo dokümantasyonu yalnızca “ne var?” sorusunu değil, “ne iddia edilmiyor?” sorusunu da cevaplamalıdır.
 
-Bu repo bu yüzden limitations, validation scope ve source code policy gibi bölümleri açıkça içerir.
+Bu repo bu yüzden sınırlar, doğrulama kapsamı ve kaynak kod politikası gibi bölümleri açıkça içerir.
 
-## 7. AI assistance ownership gerektirir
+## 7. AI Desteği Sahiplik Gerektirir
 
-AI tools kullanmak ownership'i ortadan kaldırmaz.
+AI araçları kullanmak sahipliği ortadan kaldırmaz.
 
 Değerli kısım şunlardı:
 
-- requirement belirlemek
-- architecture kararlarını değerlendirmek
-- validation output okumak
-- edge case aramak
-- broad claims'i concrete checks'e çevirmek
+- gereksinimleri belirlemek
+- mimari kararları değerlendirmek
+- doğrulama çıktısını okumak
+- uç durum aramak
+- geniş iddiaları somut kontrollere çevirmek
 - sınırları dürüstçe belgelemek
 
-## 8. Foundation product değildir
+## 8. Altyapı Temeli Ürün Değildir
 
-Backend foundation tek başına end-user product değildir.
+Backend altyapı temeli tek başına son kullanıcı ürünü değildir.
 
-Gerçek ürün için domain workflow, UI, onboarding, reporting, operations ve real user feedback gerekir.
+Gerçek ürün için iş akışı, kullanıcı arayüzü, onboarding, raporlama, operasyon ve gerçek kullanıcı geri bildirimi gerekir.
 
-Foundation ise future modules için riskleri azaltan shared platform layer sağlar.
+Altyapı temeli ise gelecekteki modüller için riskleri azaltan ortak platform katmanı sağlar.
 
-## 9. Güçlü backend projeleri görünür olmayabilir
+## 9. Güçlü Backend Projeleri Görünür Olmayabilir
 
-Frontend demo hızlı anlaşılır. Backend foundation'ın değeri daha görünmezdir:
+Frontend demosu hızlı anlaşılır. Backend altyapı temelinin değeri daha görünmezdir:
 
-- tenant boundaries
-- predictable authorization
-- safe failure behavior
-- audit evidence
-- validation checks
-- deployment constraints
+- kiracı sınırları
+- öngörülebilir yetkilendirme
+- güvenli hata davranışı
+- denetim kanıtı
+- doğrulama kontrolleri
+- dağıtım sınırları
 
-Bu yüzden public case study, görünmeyen backend engineering'i diyagramlar, tablolar ve net açıklamalarla görünür hale getirmelidir.
+Bu yüzden public case study, görünmeyen backend mühendisliğini diyagramlar, tablolar ve net açıklamalarla görünür hale getirmelidir.
