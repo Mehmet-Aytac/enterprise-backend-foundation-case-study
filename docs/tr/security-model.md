@@ -1,139 +1,101 @@
-# Security Model
+# Güvenlik Modeli
 
-Bu doküman, private enterprise backend foundation içinde ele alınan security model'i özetler.
+Bu doküman, özel backend altyapı temelinde ele alınan güvenlik modelini özetler.
 
-Bu bir case-study summary'dir; third-party security audit, compliance certificate, penetration-test report veya live enterprise production usage iddiası değildir.
+Bu bir case-study özetidir; dış denetim raporu, uyumluluk sertifikası veya canlı üretim kullanımı iddiası değildir.
 
-## Security Goals
+## Güvenlik Hedefleri
 
-Private proje şu hedefler etrafında tasarlandı:
+Özel proje şu hedefler etrafında tasarlandı:
 
-- explicitly authorized system-administration path dışında cross-tenant data access'i engellemek
-- authentication ve authorization ayrımını korumak
-- authorization'ı deterministic, centralized ve deny-by-default yapmak
-- browser cookie sessions'ı CSRF-style mutation attempts'e karşı korumak
-- sessions'ı revocable ve application process dışında persisted tutmak
-- token reuse, suspicious login, failed credentials ve security-sensitive lifecycle events'i görünür yapmak
-- audit durability'yi outbox worker ile korumak
-- audit history'yi application-level tamper-evident hale getirmek
-- trusted proxy chain açıkça configure edilmedikçe client-supplied proxy/IP headers'a güvenmemek
-- responses ve logs içinde sensitive data exposure'ı minimize etmek
+- kiracılar arası veri erişimini engellemek
+- kimlik doğrulama (authentication) ile yetkilendirmeyi (authorization) ayrı tutmak
+- yetkilendirmeyi merkezi, belirleyici ve varsayılan olarak reddeden şekilde tasarlamak
+- tarayıcı çerez oturumlarını güvenli akışlarla korumak
+- oturumları uygulama süreci dışında saklanabilir ve geri alınabilir tutmak
+- önemli güvenlik olaylarını görünür hale getirmek
+- denetim kayıtlarını dayanıklı iş kuyruğu üzerinden işlemek
+- denetim geçmişini uygulama seviyesinde kurcalamayı belli eder hale getirmek
+- güvenilir proxy zinciri yapılandırılmadıkça istemci başlıklarına güvenmemek
+- yanıtlar ve loglar içinde hassas veri görünürlüğünü azaltmak
 
-## Protected Assets
+## Korunan Varlıklar
 
-Private design şu varlıkları protected assets olarak ele aldı:
+Özel tasarım şu varlıkları korunan varlıklar olarak ele aldı:
 
-- user credentials ve password hashes
-- browser session tokens
-- access ve refresh tokens
-- token lifecycle state
-- MFA secrets ve recovery codes
-- password-reset material
-- tenant data ve tenant governance settings
-- organization hierarchy ve membership assignments
-- role, permission, policy ve relationship grants
-- service-account credentials ve permission assignments
-- audit logs, security events ve outbox records
-- PII, confidential business attributes, HR-like fields, performance data ve security-sensitive metadata
+- kullanıcı hesapları ve oturum bilgileri
+- kiracı verisi ve kiracı yönetişim ayarları
+- organizasyon hiyerarşisi ve üyelik atamaları
+- rol, izin, politika ve ilişki kayıtları
+- servis hesabı bilgileri ve izin atamaları
+- denetim kayıtları, güvenlik olayları ve iş kuyruğu kayıtları
+- kişisel veri, gizli iş alanları, performans verisi ve güvenliğe duyarlı üstveri
 
-## Actor Types
+## Aktör Türleri
 
-Design şu actor türlerini dikkate aldı:
+Tasarım şu aktör türlerini dikkate aldı:
 
-- anonymous internet client
-- authenticated tenant user
-- tenant administrator
-- system administrator
-- browser client using cookie transport
-- API/mobile client using bearer transport
-- machine credential kullanan service account
-- outbox worker process
-- database migration process
+- anonim istemci
+- kimliği doğrulanmış kiracı kullanıcısı
+- kiracı yöneticisi
+- sistem yöneticisi
+- tarayıcı istemcisi
+- API/mobil istemci
+- servis hesabı
+- worker süreci
+- veritabanı migration süreci
 
-## Trust Boundaries
+## Güven Sınırları
 
-Önemli trust boundary'ler:
+Önemli güven sınırları:
 
-- internet/client boundary into Express API
-- reverse proxy boundary into application process
-- API request path into Prisma/PostgreSQL
-- API request path into audit/security outbox
-- outbox worker into durable audit/security tables
-- browser cookie transport into CSRF-protected mutation routes
-- bearer token transport into token/session verification
-- service-account credential boundary into machine-principal handling
+- istemciden Express API'ye geçiş
+- reverse proxy'den uygulama sürecine geçiş
+- API istek yolundan PostgreSQL'e geçiş
+- API istek yolundan denetim/güvenlik iş kuyruğuna geçiş
+- worker sürecinden kalıcı denetim/güvenlik tablolarına geçiş
+- tarayıcı akışından değişiklik rotalarına geçiş
+- servis hesabı kimliğinden makine aktörü davranışına geçiş
 
-## Major Threats And Controls
+## Ana Riskler ve Kontroller
 
-### Cross-tenant access
+### Kiracılar arası erişim
 
-Tenant boundaries first-order security boundary olarak ele alındı.
+Kiracı sınırları birinci sınıf güvenlik sınırı olarak ele alındı. Kiracıya ait kayıtlar, istemciden gelen iddialar yerine sunucu tarafından doğrulanan kiracı bağlamıyla erişilmelidir.
 
-Tenant-owned records, request body içindeki tenant IDs yerine server-derived tenant context ile erişilmelidir. Business-level permissions, target object başka tenant'a aitse güvenli değildir.
+### Tarayıcı ve API akışlarının karışması
 
-### CSRF against browser sessions
+Tarayıcı çerez akışları ve API/mobil erişim akışları farklı risklere sahiptir. Bu nedenle aynı davranış gibi ele alınmamalıdır.
 
-Browser cookie flows mutating requests için CSRF protection gerektirir. Bearer-only API/mobile clients, ambient browser cookies kullanmadığı için browser CSRF checks'e zorlanmamalıdır.
+### Makine kimliği ile insan kimliğinin karışması
 
-### Token replay ve refresh-token reuse
+Servis hesapları insan kullanıcısı değil, makine aktörüdür. İnsan aktör gerektiren rotalar servis hesaplarını açıkça reddetmelidir.
 
-Refresh tokens yalnızca hash olarak persisted edilmeli ve kullanımda rotate edilmelidir.
+### İlişki taşması
 
-Reuse attempts sınıflandırılır; benign parallel races credential üretmeden reddedilebilir, suspicious veya repeated reuse affected session family'yi revoke edebilir.
+İlişki tabanlı erişim; kiracı, özne, ilişki türü, kaynak türü ve kaynak kimliği bağlamına bağlı olmalıdır. Genel ilişki etiketleri tek başına yeterli değildir.
 
-### Weak or stale sessions
+### Hassas alan görünürlüğü
 
-Sessions DB-backed ve revocable'dır. Sensitive operations, step-up authentication ile daha yüksek session trust gerektirebilir.
+Rota yetkilendirmesi tek başına yeterli değildir. Bir kullanıcı kaynağa erişebilir ama kişisel, gizli veya güvenliğe duyarlı alanları görme hakkına sahip olmayabilir.
 
-### Machine identity confusion
+### Denetim tutarlılığı
 
-Service accounts machine principal'dır, human user değildir.
+Denetim ve güvenlik kayıtları dayanıklı iş kuyruğu üzerinden işlenir. Denetim geçmişi, uygulama seviyesinde kurcalamayı belli edecek şekilde tasarlanır.
 
-Human-only routes service-account principals'ı açıkça reddetmelidir. Sensitive service-account permissions ekstra guardrail gerektirir; çünkü machine credentials ve human sessions farklı risk taşır.
+## Güvenlik İnceleme Kuralı
 
-### Relationship overreach
+Bir değişiklik şu durumlarda daha dikkatli incelenmelidir:
 
-Relationship-based access exact tenant, subject, relation type, resource type ve resource ID'ye bağlı olmalıdır.
+- kiracı yalıtımını zayıflatıyorsa
+- varsayılan olarak daha fazla veri gösteriyorsa
+- istemci girdisine daha fazla güveniyorsa
+- merkezi yetkilendirmeyi atlıyorsa
+- denetim görünürlüğünü azaltıyorsa
+- hata durumlarını daha belirsiz hale getiriyorsa
 
-“Manager” gibi genel bir ilişki etiketi tek başına yeterli değildir. Permission decision hangi resource'a erişildiğini bilmelidir.
+## Bu Model Ne İddia Etmez?
 
-### PII ve sensitive-field leakage
+Bu case study; dış güvenlik sertifikası, canlı üretim kullanımı, mutlak denetim değişmezliği veya eksiksiz operasyon olgunluğu iddia etmez.
 
-Route authorization tek başına yeterli değildir.
-
-Bir user resource'a erişebilir ama PII, confidential attributes, internal metadata, performance metrics veya security details görme hakkına sahip olmayabilir. Bu alanlar explicit grants olmadan fail closed davranmalıdır.
-
-### Audit loss veya audit inconsistency
-
-Audit ve security writes durable outbox processing üzerinden akar.
-
-Audit logs, application-level threat model içinde historical modification veya deletion tespit edilebilsin diye per-tenant hash-chain append strategy ile tasarlanır.
-
-## Security Review Rule
-
-Bir değişiklik şu durumlarda security-breaking gibi ele alınmalıdır:
-
-- tenant isolation zayıflıyorsa
-- default olarak daha fazla data expose ediyorsa
-- daha fazla client input'a güveniyorsa
-- credential handling zayıflıyorsa
-- centralized authorization bypass ediliyorsa
-- audit/security visibility kaldırılıyorsa
-- failure modes daha belirsiz hale geliyorsa
-- browser-cookie ve API-token davranışı karışıyorsa
-- fail-closed path fail-open hale geliyorsa
-
-Bu değişiklikler compensating control ve targeted regression tests gerektirir.
-
-## What This Model Does Not Claim
-
-Bu case study şunları iddia etmez:
-
-- external security certification
-- independent penetration testing
-- compliance approval
-- absolute audit immutability
-- database, application code, backups ve logs tamamen ele geçirilmişse tam integrity guarantee
-- complete production operational maturity
-
-Daha doğru iddia şudur: private prototype gerçek backend security boundaries'i araştırdı ve bu boundary'lerin production öncesi nasıl validate edilmesi gerektiğini belgeledi.
+Daha doğru iddia şudur: özel prototip gerçek backend güvenlik sınırlarını araştırdı ve bu sınırların üretim öncesi nasıl doğrulanması gerektiğini belgeledi.
