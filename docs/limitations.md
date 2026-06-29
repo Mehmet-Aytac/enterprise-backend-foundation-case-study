@@ -1,6 +1,8 @@
 # Limitations
 
-This case study documents a private prototype and its validation process. It should not be read as a claim that the private project is a certified enterprise product.
+This case study documents a private active-development prototype and its validation process.
+
+It should not be read as a claim that the private project is a finished commercial product, certified enterprise platform, or externally audited production system.
 
 ## Source Code Is Private
 
@@ -12,28 +14,38 @@ The public repository is intended to summarize the design and review process, no
 
 ## Validation Is Local, Not External Certification
 
-The private prototype was validated with local and repository-level checks, including unit tests, integration tests, security-abuse scenarios, audit hash-chain verification, performance smoke checks, and container scanning.
+The private prototype was validated with local and repository-level checks, including unit tests, integration tests, abuse-case scenarios, audit hash-chain verification, performance smoke checks, dependency review, and container-oriented checks.
 
 These checks are valuable, but they do not replace:
 
-- independent penetration testing
-- professional SAST/DAST review
+- independent external review
 - external architecture review
 - compliance certification
-- production incident-response exercises
+- production incident exercises
 - long-running operational validation
+- realistic production traffic validation
 
 ## No Real Customer Usage Yet
 
-The private prototype was built as a foundation for future domain modules.
+The private prototype was built as a foundation for future domain modules and possible commercial products.
 
 It does not yet prove real-world product-market fit, customer adoption, operational support maturity, or production behavior under live customer load.
 
-## No Public Domain Module
+## Not A Complete End-User Product
 
-The foundation is not a complete end-user product by itself.
+A backend foundation is not a product by itself.
 
-It provides platform-level capabilities such as authentication, authorization, auditability, tenant boundaries, and validation strategy. A real business application would still need domain-specific workflows, UI, reporting, onboarding, support processes, and deployment operations.
+It provides platform-level capabilities such as authentication, authorization, auditability, tenant boundaries, response minimization, and validation strategy.
+
+A real business application would still need:
+
+- domain-specific workflows
+- user interface
+- reporting
+- onboarding
+- support process
+- deployment operations
+- real user feedback
 
 ## Audit Integrity Has Boundaries
 
@@ -49,23 +61,29 @@ This was an AI-assisted engineering case study.
 
 AI tools were used during generation, review, hardening, and documentation. The project should be interpreted as an example of AI-assisted architecture exploration and validation, not as a claim that every implementation detail was authored manually from scratch.
 
+The important ownership claim is about requirements, architecture evaluation, validation, edge-case review, documentation, and hardening direction.
+
 ## Future Work Before Production Use
 
 Before using the private prototype as a real enterprise production foundation, the following areas would still need additional work:
 
-- external penetration testing
-- SAST and DAST integration
+- independent external review
 - backup and restore drills
-- secret rotation procedures
+- configuration rotation procedures
 - production observability dashboards
-- security incident runbooks
+- incident runbooks
 - deployment-specific hardening
 - load testing against realistic traffic patterns
 - domain-module-specific threat modeling
 - legal and compliance review depending on the target industry
+- production support and operational ownership model
 
 ## Portfolio Interpretation
 
-This repository is best understood as a technical case study showing how security, architecture, validation, and hardening concerns were explored in a private backend prototype.
+This repository is best understood as a technical case study showing how architecture, validation, and hardening concerns were explored in a private backend prototype.
 
 It is not intended to be presented as a finished commercial product, a certified enterprise system, or a public starter template.
+
+The most accurate short description is:
+
+> Private-source, active-development backend foundation documented as a public architecture and validation case study.
