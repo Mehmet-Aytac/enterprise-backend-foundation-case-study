@@ -1,13 +1,13 @@
-# Interview Walkthrough
+# Görüşme Anlatım Rehberi
 
-Bu doküman, private backend foundation çalışmasını teknik görüşmelerde kod açmadan anlatmak için kısa bir rehberdir.
+Bu doküman, özel backend altyapı temeli çalışmasını teknik görüşmelerde kod açmadan anlatmak için kısa bir rehberdir.
 
-## 1. Honest Scope
+## 1. Dürüst Kapsam
 
 Önce kapsamı dürüstçe söyle:
 
 ```text
-Bu proje finished product değil; aktif geliştirme aşamasındaki private-source backend foundation çalışmasının public case study dokümantasyonudur.
+Bu proje bitmiş bir ürün değil; aktif geliştirme aşamasındaki özel kaynak kodlu backend altyapı temeli çalışmasının public case study dokümantasyonudur.
 ```
 
 ## 2. Problem
@@ -15,59 +15,59 @@ Bu proje finished product değil; aktif geliştirme aşamasındaki private-sourc
 Projenin cevap aradığı soru:
 
 ```text
-Future modules aynı tenant isolation, authentication, authorization, response minimization, auditability, validation ve deployment-oriented runtime davranışlarını nasıl güvenli şekilde paylaşabilir?
+Gelecekteki modüller aynı kiracı yalıtımı, kimlik doğrulama, yetkilendirme, yanıt sadeleştirme, denetlenebilirlik, doğrulama ve dağıtım hazırlığı davranışlarını nasıl güvenli şekilde paylaşabilir?
 ```
 
-## 3. Architecture
+## 3. Mimari
 
 Kısa anlatım:
 
 ```text
-Request API'ye gelir, identity resolve edilir, tenant context ve access scope oluşturulur, permission engine route'u değerlendirir, module service tenant-scoped iş yapar ve audit/security evidence outbox'a yazılır.
+İstek API'ye gelir, kimlik çözülür, kiracı bağlamı ve erişim kapsamı oluşturulur, yetki karar motoru rotayı değerlendirir, modül servisi kiracı kapsamlı iş yapar ve denetim/güvenlik kaydı iş kuyruğuna yazılır.
 ```
 
-## 4. Permission Engine
+## 4. Yetki Karar Motoru
 
 Vurgulanacak ana fikir:
 
 ```text
-Permission engine sadece role check değildir. Principal type, tenant boundary, route permission, scoped grants, relationship checks, policy rules, session trust ve server-derived resource facts birlikte değerlendirilir.
+Yetki karar motoru sadece rol kontrolü değildir. Aktör tipi, kiracı sınırı, rota izni, kapsam kısıtları, ilişki kontrolleri, politika kuralları, oturum güven düzeyi ve sunucu tarafından doğrulanan kaynak bilgileri birlikte değerlendirilir.
 ```
 
-## 5. Tenant Isolation
+## 5. Kiracı Yalıtımı
 
 Kısa anlatım:
 
 ```text
-Tenant boundary normal bir filtre değil, security boundary olarak ele alınır. Tenant context request body'den değil authenticated request state'ten gelir.
+Kiracı sınırı normal bir filtre değil, güvenlik sınırı olarak ele alınır. Kiracı bağlamı istek gövdesinden değil kimliği doğrulanmış istek durumundan gelir.
 ```
 
-## 6. Response Minimization
+## 6. Yanıt Sadeleştirme
 
 Kısa anlatım:
 
 ```text
-Route'a erişebilmek, response içindeki tüm field'ları görebilmek anlamına gelmez. Field projection restricted alanları ayrıca kontrol eder.
+Rotaya erişebilmek, yanıt içindeki tüm alanları görebilmek anlamına gelmez. Alan filtreleme, kısıtlı alanları ayrıca kontrol eder.
 ```
 
-## 7. Auditability
+## 7. Denetlenebilirlik
 
 Kısa anlatım:
 
 ```text
-Audit logs ve security events ayrılır. Önemli kayıtlar outbox worker üzerinden durable hale getirilir. Hash-chain tasarımı application-level tamper evidence sağlar.
+Denetim kayıtları ve güvenlik olayları ayrılır. Önemli kayıtlar iş kuyruğu üzerinden kalıcı hale getirilir. Kayıt zinciri tasarımı uygulama seviyesinde kurcalamayı belli eder.
 ```
 
-## 8. AI Assistance
+## 8. AI Desteği
 
 Dürüst açıklama:
 
 ```text
-AI tools generation, review, hardening ve documentation aşamalarında kullanıldı. Benim rolüm requirements, architecture evaluation, validation review, edge-case thinking, documentation ve hardening direction üzerindeydi.
+AI araçları üretim, inceleme, sertleştirme ve dokümantasyon aşamalarında kullanıldı. Benim rolüm gereksinimler, mimari değerlendirme, doğrulama incelemesi, uç durum düşüncesi, dokümantasyon ve sertleştirme yönü üzerindeydi.
 ```
 
-## 9. Closing Pitch
+## 9. Kapanış Cümlesi
 
 ```text
-Bu projenin güçlü yanı finished product olması değil; tenant boundaries, permission decisions, response minimization, auditability, validation ve production-readiness limits gibi gerçek backend concerns üzerinde düşünülmüş olmasıdır.
+Bu projenin güçlü yanı bitmiş ürün olması değil; kiracı sınırları, yetki kararları, yanıt sadeleştirme, denetlenebilirlik, doğrulama ve üretim hazırlığı sınırları gibi gerçek backend konuları üzerinde düşünülmüş olmasıdır.
 ```
