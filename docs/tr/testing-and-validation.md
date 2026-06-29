@@ -1,90 +1,75 @@
-# Testing and Validation Summary
+# Test ve Doğrulama Özeti
 
-Bu doküman, private enterprise backend foundation prototype üzerinde yapılan validation çalışmalarını özetler.
+Bu doküman, özel backend altyapı temeli üzerinde yapılan doğrulama çalışmalarını özetler.
 
-Full source code, raw logs ve test implementation details bu public case-study repository içinde yer almaz. Amaç; neyin test edildiğini, hangi risklerin kapsandığını ve local verification sırasında ne tür sonuçların kaydedildiğini belgelemektir.
+Tam kaynak kod, ham loglar ve test uygulama detayları bu public case-study repository içinde yer almaz. Amaç; neyin kontrol edildiğini, hangi risklerin kapsandığını ve özel depoda ne tür sonuçların kaydedildiğini belgelemektir.
 
-Bu doküman external audit, security certification veya public reproducibility package olarak değil; private prototype için engineering validation record olarak okunmalıdır.
+Bu doküman dış denetim veya sertifika olarak değil, özel prototip için mühendislik doğrulama kaydı olarak okunmalıdır.
 
-## Validation Matrix
+## Doğrulama Matrisi
 
-| Area | What was checked | Recorded result |
+| Alan | Kontrol edilen konu | Kayıtlı sonuç |
 |---|---|---|
-| CI / code contract | Prisma schema validation, TypeScript typecheck, linting, formatting, OpenAPI validation, unit/security tests, production dependency audit ve build | PASS |
-| Fresh database reproducibility | Clean PostgreSQL reset, committed migrations, deterministic seed data ve fresh state'ten integration tests | PASS |
-| Security integration | Login, refresh, password change/reset, tenant isolation, service-account behavior, outbox processing, audit hash-chain behavior ve abuse-case scenarios | PASS |
-| Response leak scan | Representative success/error payloads sensitive values, internal access data, raw framework errors, stack traces ve environment detail exposure için kontrol edildi | PASS |
-| Browser-cookie attack simulation | Cookie-auth mutating requests CSRF protection olmadan veya hostile Origin headers ile reddedildi; bearer-only API clients browser CSRF'e zorlanmadı | PASS |
-| Tenant-boundary testing | Users, roles, permissions, organization hierarchy, service accounts, sessions, audit logs ve security events üzerinde cross-tenant attempts güvenli şekilde fail etti | PASS |
-| Token/session abuse testing | Invalid credentials safe responses döndürdü; refresh-token race/reuse attempts unauthorized credentials üretmedi; suspicious/repeated reuse affected session family'yi revoked etti | PASS |
-| MFA abuse and concurrency | Recovery-code usage ve enrollment verification concurrent attempts altında atomic single-use behavior için kontrol edildi | PASS |
-| Audit durability | Outbox materialization, retry/dead-letter behavior, concurrent same-tenant hash-chain append ve audit hash-chain verification validate edildi | PASS |
-| Hot-path performance | Authenticated hot paths local query-count budgets'e karşı kontrol edildi | PASS |
-| Concurrent API smoke | Concurrent read, write ve invalid-auth probe scenarios local latency/error baselines'e karşı kontrol edildi | PASS |
-| Platform packaging | Docker, Compose, Kubernetes-style ve ECS-style configuration checks private repository içinde yapıldı | PASS |
-| Supply-chain scanning | Production dependency audit ve container vulnerability scans validation process parçasıydı | PASS |
-| Documentation consistency | README, OpenAPI, deployment notes ve safe module-extension rules consistency için review edildi | PASS |
+| Kod sözleşmesi | Şema doğrulama, TypeScript kontrolü, lint, format, OpenAPI doğrulama, testler, bağımlılık denetimi ve build | PASS |
+| Temiz veritabanı | PostgreSQL sıfırlama, migration, seed data ve temiz durumdan entegrasyon testleri | PASS |
+| Güvenlik entegrasyonu | Giriş, oturum, kiracı yalıtımı, servis hesabı davranışı, iş kuyruğu ve denetim zinciri davranışı | PASS |
+| Yanıt sızıntısı kontrolü | Başarılı ve hatalı yanıtların hassas değer, iç erişim bilgisi ve ham hata ayrıntısı açısından incelenmesi | PASS |
+| Kiracı sınırı | Kullanıcı, rol, izin, oturum, denetim ve güvenlik olaylarında kiracılar arası erişim denemeleri | PASS |
+| Eşzamanlılık | Aynı anda gelen isteklerde kritik akışların tutarlı davranması | PASS |
+| Denetim dayanıklılığı | İş kuyruğu işleme, tekrar deneme davranışı ve kayıt zinciri doğrulaması | PASS |
+| Performans duman testi | Sık kullanılan kimlik doğrulamalı yolların yerel bütçelere göre kontrol edilmesi | PASS |
+| Platform paketleme | Docker, Compose ve dağıtım şablonu kontrolleri | PASS |
+| Dokümantasyon tutarlılığı | README, OpenAPI, dağıtım notları ve modül genişletme kurallarının tutarlılığı | PASS |
 
-## Security Regression Work
+## Regresyon Çalışmaları
 
-Review sırasında bazı sorunlar bulundu ve targeted fixes/regression checks ile kapatıldı.
+İnceleme sırasında bazı davranışlar daha güvenli hale getirildi ve hedefli kontrollerle desteklendi.
 
-| Finding | Fix strategy | Validation |
+| Bulgu | Yaklaşım | Doğrulama |
 |---|---|---|
-| Scoped authorization required resource dimensions eksik olduğunda fail open davranabiliyordu | Branch, department ve team-scoped permissions artık required server-derived dimension data eksikse fail closed davranır | Regression tests added |
-| Parallel refresh-token rotation iki request'in de başarılı olmasına izin verebiliyordu | Replacement token oluşturulmadan önce old refresh token conditionally claimed edilir | Concurrency integration test added |
-| MFA recovery codes atomic single-use enforcement gerektiriyordu | Recovery code consumption conditional atomic claim kullanır | Concurrency test added |
-| Cookie-based refresh response browser-oriented flow içinde token material expose ediyordu | Cookie refresh artık token-free response döndürür; explicit token endpoints ayrı kalır | Controller behavior verified |
-| TOTP enrollment verification parallel requests altında iki kez tamamlanabiliyordu | Enrollment verification, recovery material oluşturmadan önce unverified factor'ı atomically claim eder | Concurrency test added |
-| Password-reset webhook delivery timeout ve signed payload eksikti | Delivery timeout handling ve signed payloads kullanır | Delivery contract documented and tested |
-| Service accounts sensitive-permission boundaries gerektiriyordu | Sensitive permissions explicit service-account approval flags ve engine-side guardrails gerektirir | Service-account tests added |
-| OpenAPI route drift daha görünür olmalıydı | Route documentation private validation flow içinde route manifest ile check edilir | Contract validation added |
+| Kapsamlı yetkilendirme, gerekli kaynak bilgisi eksikken yanlış izin verebiliyordu | Eksik bilgi durumunda güvenli ret davranışı | Regresyon testi |
+| Paralel istekler bazı hassas akışlarda tutarlılık riski oluşturabiliyordu | Atomik işlem ve tek sonuç davranışı | Eşzamanlılık testi |
+| Tarayıcı ve API akışları daha net ayrılmalıydı | Davranış ayrımı ve sözleşme netleştirme | Entegrasyon kontrolü |
+| Servis hesapları için ek sınırlar gerekiyordu | Ayrı makine aktörü davranışı | Servis hesabı testleri |
+| OpenAPI rota tutarlılığı daha görünür olmalıydı | Manifest tarzı sözleşme kontrolü | Sözleşme doğrulaması |
 
-## What Was Verified
+## Ne Doğrulandı?
 
-Validation work şu davranışlara güven verdi:
+Doğrulama çalışması şu davranışlara güven verdi:
 
-- Application committed migrations ve seed data ile yeniden build edilebilir.
-- Authentication flows malformed, invalid, expired ve reused credentials'ı güvenli reddeder.
-- Browser cookie flows CSRF-style mutation attempts'e karşı korunur.
-- Token-based API flows browser cookie flows'tan ayrı kalır.
-- Tenant boundaries business-level access checks öncesinde enforce edilir.
-- Authorization decisions missing scoped resource facts için fail closed davranır.
-- Sensitive response fields explicit grants olmadan expose edilmez.
-- Audit ve security events durable outbox processing üzerinden yazılabilir.
-- Audit hash-chain verification broken chain state'i tespit edebilir.
-- Concurrency-sensitive authentication ve MFA flows parallel attempts altında güvenli davranır.
-- Platform packaging checks non-root runtime behavior ve container review gates'i kapsar.
+- Uygulama migration ve seed data ile yeniden kurulabilir.
+- Kimlik doğrulama akışları hatalı girdileri güvenli şekilde reddeder.
+- Tarayıcı ve API akışları ayrı riskler olarak ele alınır.
+- Kiracı sınırları iş seviyesi erişim kontrollerinden önce uygulanır.
+- Yetkilendirme kararları eksik kapsam bilgisi için güvenli biçimde reddeder.
+- Hassas yanıt alanları açık izin olmadan gösterilmez.
+- Denetim ve güvenlik olayları dayanıklı iş kuyruğu üzerinden işlenebilir.
+- Eşzamanlılık açısından önemli akışlar paralel denemelerde kontrol edilmiştir.
 
-## What This Does Not Prove
+## Ne Kanıtlamaz?
 
-Bu validation work external security review yerine geçmez.
+Bu çalışma dış güvenlik incelemesinin yerine geçmez.
 
-Private prototype gerçek enterprise production system temeli olarak kullanılmadan önce şu alanlar ek çalışma gerektirir:
+Gerçek kurumsal üretim kullanımı öncesinde şu alanlarda ek çalışma gerekir:
 
-- independent penetration testing
-- SAST ve DAST integration
-- backup and restore drills
-- incident response procedures
-- production monitoring dashboards
-- secret rotation procedures
-- external compliance veya regulatory review
-- real deployment load testing
-- long-running operational testing
-- production incident exercises
+- bağımsız dış inceleme
+- yedekleme ve geri yükleme denemeleri
+- olay müdahale süreçleri
+- üretim gözlemlenebilirlik panelleri
+- gerçekçi trafik altında yük testi
+- uzun süreli operasyon doğrulaması
+- hedef sektöre göre yasal ve uyumluluk incelemesi
 
-## Reproducibility Note
+## Tekrarlanabilirlik Notu
 
-Exact commands, source code, test files ve raw logs private repository içinde tutulur.
+Kesin komutlar, kaynak kod, test dosyaları ve ham loglar özel depoda tutulur.
 
-Bu public case-study repository bilinçli olarak validation summary ve selected design notes içerir. Uygun technical interviews sırasında selected implementation details veya code walkthroughs paylaşılabilir.
+Bu public case-study repository yalnızca doğrulama özetini ve seçili tasarım notlarını içerir.
 
-## Portfolio Takeaway
+## Portfolyo Çıkarımı
 
-Doğru claim “bu certified enterprise backend'dir” değildir.
+Doğru mesaj “bu sertifikalı kurumsal backend'dir” değildir.
 
-Doğru claim şudur:
+Doğru mesaj şudur:
 
-> Serious backend systems için gereken validation soruları üzerinde çalıştım: tenant boundaries, token lifecycle, authorization failure modes, response leaks, audit durability, concurrency ve deployment checks.
-
-Bu, projeyi finished production product gibi sunmaktan daha güçlü ve daha dürüst bir portfolio signal verir.
+> Ciddi backend sistemlerinde gereken doğrulama soruları üzerinde çalıştım: kiracı sınırları, yetkilendirme hata biçimleri, yanıt sızıntıları, denetim dayanıklılığı, eşzamanlılık ve dağıtım kontrolleri.
