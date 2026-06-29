@@ -1,115 +1,115 @@
-# Deployment Notes
+# Dağıtım Notları
 
-Bu doküman, private enterprise backend foundation içinde ele alınan deployment ve runtime concerns'ü özetler.
+Bu doküman, özel backend altyapı temelinde ele alınan dağıtım (deployment) ve çalışma zamanı (runtime) konularını özetler.
 
-Public repository runnable deployment templates içermez. Bu doküman yalnızca design considerations açıklar.
+Public repository çalıştırılabilir dağıtım şablonları içermez. Bu doküman yalnızca tasarım düşüncelerini açıklar.
 
-## Runtime Shape
+## Çalışma Zamanı Yapısı
 
-Private prototype split runtime model kullandı:
+Özel prototip ayrılmış bir çalışma modeli kullandı:
 
-- HTTP requests için API process
-- audit/security outbox dispatch için worker process
-- sessions, token state, outbox records, audit logs, security events ve business data için source of truth olarak PostgreSQL
-- yeni runtime release öncesinde migration process
+- HTTP istekleri için API süreci
+- denetim/güvenlik iş kuyruğu için worker süreci
+- oturumlar, iş kuyruğu kayıtları, denetim kayıtları, güvenlik olayları ve iş verisi için kaynak olarak PostgreSQL
+- yeni sürüm öncesinde migration süreci
 
-API ve worker application-process level'da stateless olacak şekilde düşünülmüştür.
+API ve worker, uygulama süreci seviyesinde durumsuz (stateless) olacak şekilde düşünülmüştür.
 
-Basit ifadeyle: API container restart olursa session, audit veya business state kaybolmamalıdır; çünkü bunlar process memory'de değil PostgreSQL'de durmalıdır.
+Basit ifadeyle: API container yeniden başlarsa oturum, denetim veya iş verisi kaybolmamalıdır; çünkü bunlar süreç belleğinde değil PostgreSQL'de durmalıdır.
 
-## Runtime Flow
+## Çalışma Akışı
 
 ```mermaid
 flowchart LR
-    Image[Single container image] --> API[API process]
-    Image --> Worker[Worker process]
-    Image --> Migration[Migration task]
+    Image[Tek container image] --> API[API süreci]
+    Image --> Worker[Worker süreci]
+    Image --> Migration[Migration görevi]
     API --> DB[(PostgreSQL)]
     Worker --> DB
     Migration --> DB
 ```
 
-Aynı immutable image API, worker ve migration tasks için farklı commands destekleyebilir.
+Aynı değişmez image API, worker ve migration görevleri için farklı komutları destekleyebilir.
 
-## Container And Runtime Hardening Ideas
+## Container ve Çalışma Zamanı Sertleştirme
 
-Private Docker design bazı runtime practices araştırdı:
+Özel Docker tasarımı bazı çalışma zamanı uygulamalarını ele aldı:
 
-- multi-stage build
-- runtime layer içinde production dependency install
-- configuration'ın environment variables üzerinden sağlanması
-- stdout-only logging
-- non-root runtime user
-- aynı immutable image üzerinden separate API ve worker commands
-- committed migrations'ın runtime image içinde available olması
-- expected process behavior için runtime checks
-- dependency ve image review gates
+- çok aşamalı build
+- çalışma katmanında production bağımlılıkları
+- yapılandırmanın ortam değişkenleri üzerinden sağlanması
+- stdout üzerinden loglama
+- root olmayan çalışma kullanıcısı
+- aynı image üzerinden ayrı API ve worker komutları
+- migration dosyalarının runtime image içinde bulunması
+- beklenen süreç davranışı için çalışma zamanı kontrolleri
+- bağımlılık ve image inceleme kapıları
 
-## Environment Validation
+## Ortam Doğrulama
 
-Private prototype sensitive configuration için fail-fast environment validation içerdi.
+Özel prototip hassas yapılandırma için hızlı başarısız olan ortam doğrulama içerdi.
 
-Önemli deployment checks:
+Önemli dağıtım kontrolleri:
 
-- production/staging environments credentialed wildcard CORS'a izin vermemeli
-- production cookies secure olmalı
-- trusted proxy hop count gerçek infrastructure topology ile eşleşmeli
-- API docs production'da default olarak disabled olmalı; explicit enable edilirse açılmalı
-- outbound notification delivery production-like environments içinde trusted channel kullanmalı
-- application encryption keys production'da development defaults kullanmamalı
-- request body limits explicit olmalı
+- production/staging ortamları kimlik bilgili wildcard CORS'a izin vermemeli
+- production çerezleri secure olmalı
+- trusted proxy hop count gerçek altyapı topolojisiyle eşleşmeli
+- API dokümanları production'da varsayılan olarak kapalı olmalı
+- dış bildirim teslimi production-like ortamlarda güvenilir kanal kullanmalı
+- uygulama anahtarları production'da geliştirme varsayılanlarını kullanmamalı
+- request body limitleri açık olmalı
 
-## CI/CD Validation Strategy
+## CI/CD Doğrulama Stratejisi
 
-Private repository multi-layer validation approach içerdi:
+Özel repository çok katmanlı doğrulama yaklaşımı içerdi:
 
-| Layer | Examples |
+| Katman | Örnekler |
 |---|---|
-| Code contract | Typecheck, lint, formatting, OpenAPI validation, tests, dependency audit, build |
-| Platform checks | Docker build, Compose validation, Kubernetes-style manifest rendering, ECS-style template validation |
-| Runtime checks | Non-root execution ve expected runtime behavior |
-| Integration checks | PostgreSQL service, migrations, seed data, integration tests, hash-chain verification, performance smoke checks |
-| Security review | Dependency audit ve container review gates |
+| Kod sözleşmesi | Typecheck, lint, format, OpenAPI doğrulama, testler, bağımlılık denetimi, build |
+| Platform kontrolleri | Docker build, Compose doğrulama, Kubernetes tarzı manifest üretimi, ECS tarzı şablon doğrulama |
+| Runtime kontrolleri | Root olmayan çalışma ve beklenen çalışma davranışı |
+| Entegrasyon kontrolleri | PostgreSQL servisi, migration, seed data, entegrasyon testleri, kayıt zinciri doğrulama, performans duman testleri |
+| Güvenlik incelemesi | Bağımlılık denetimi ve container inceleme kapıları |
 
-## Production Considerations Not Fully Solved By Code
+## Kodun Tek Başına Çözmediği Üretim Konuları
 
-Backend foundation iyi defaults sağlayabilir; ancak gerçek production readiness operational controls'e de bağlıdır.
+Backend altyapı temeli iyi varsayılanlar sağlayabilir; ancak gerçek üretim hazırlığı operasyonel kontrollere de bağlıdır.
 
-Gerçek enterprise deployment öncesinde şunlar planlanmalıdır:
+Gerçek kurumsal dağıtım öncesinde şunlar planlanmalıdır:
 
-- managed database strategy
-- backup and restore runbooks
-- migration rollback strategy
-- log and audit retention policy
-- monitoring dashboards
-- outbox dead-letter growth ve security events için alerting
-- configuration ve key rotation process
-- incident response procedure
-- periodic dependency ve runtime reviews
-- realistic load testing
-- data retention ve deletion workflows
-- disaster recovery exercises
+- yönetilen veritabanı stratejisi
+- yedekleme ve geri yükleme runbook'ları
+- migration geri alma stratejisi
+- log ve denetim saklama politikası
+- izleme panelleri
+- iş kuyruğu ve güvenlik olayları için uyarı mekanizmaları
+- yapılandırma ve anahtar yenileme süreci
+- olay müdahale süreci
+- düzenli bağımlılık ve runtime incelemeleri
+- gerçekçi yük testi
+- veri saklama ve silme iş akışları
+- felaket kurtarma denemeleri
 
-## Hosted vs Self-Hosted Integrity
+## Hosted ve Self-Hosted Bütünlük
 
-Audit integrity story deployment ownership'e bağlıdır.
+Denetim bütünlüğü hikâyesi dağıtım sahipliğine bağlıdır.
 
-Managed SaaS modelinde provider database access, application code, audit trails ve external logs'u daha güçlü koruyabilir.
+Yönetilen SaaS modelinde sağlayıcı veritabanı erişimini, uygulama kodunu, denetim kayıtlarını ve dış logları daha güçlü koruyabilir.
 
-Self-hosted veya customer-root-access modelinde infrastructure administrators data, code veya logs'u değiştirebilir. Bu modelde audit integrity claims, external anchoring/protected backups/third-party log export eklenmedikçe application-level tamper evidence olarak ifade edilmelidir.
+Self-hosted veya müşteri root erişimli modelde altyapı yöneticileri veri, kod veya logları değiştirebilir. Bu modelde denetim bütünlüğü iddiaları, ek kontroller yoksa uygulama seviyesinde kurcalama tespiti olarak ifade edilmelidir.
 
-## Correct Portfolio Claim
+## Doğru Portfolyo İddiası
 
-Deployment work “production already solved” şeklinde sunulmamalıdır.
+Dağıtım çalışması “production zaten çözüldü” şeklinde sunulmamalıdır.
 
-Daha doğru claim:
+Daha doğru ifade:
 
-> Private prototype production-oriented runtime structure, CI gates, environment validation, container hardening ve operational boundaries konularını araştırdı.
+> Özel prototip; üretim ortamına hazırlık hedefli çalışma zamanı yapısı, CI kapıları, ortam doğrulama, container sertleştirme ve operasyonel sınırları araştırdı.
 
-Bu ifade sistemi olduğundan büyük göstermeden maturity gösterir.
+Bu ifade sistemi olduğundan büyük göstermeden olgunluk gösterir.
 
-## Portfolio Takeaway
+## Portfolyo Çıkarımı
 
-Deployment work sadece application'ı container içinde başlatmak değildir.
+Dağıtım çalışması yalnızca uygulamayı container içinde başlatmak değildir.
 
-Ana ders şudur: production readiness; application design, runtime hardening, CI gates, environment validation, operational runbooks ve software'in kendi başına neyi garanti edip edemeyeceği konusunda dürüst sınırların birleşimidir.
+Ana ders şudur: üretim hazırlığı; uygulama tasarımı, çalışma zamanı sertleştirme, CI kapıları, ortam doğrulama, operasyonel runbook'lar ve yazılımın kendi başına neyi garanti edip edemeyeceği konusunda dürüst sınırların birleşimidir.
