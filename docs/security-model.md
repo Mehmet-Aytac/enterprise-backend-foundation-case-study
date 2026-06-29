@@ -1,96 +1,113 @@
 # Security Model
 
-This document summarizes the security model explored in the private enterprise backend foundation prototype.
+This document summarizes the security model explored in the private enterprise backend foundation.
 
-It is a case-study summary, not a third-party security audit or certification.
+It is a case-study summary, not a third-party security audit, compliance certificate, penetration-test report, or claim of live enterprise production usage.
 
 ## Security Goals
 
-The private prototype was designed around the following goals:
+The private project was designed around these goals:
 
-- prevent cross-tenant data access unless explicitly authorized
-- separate authentication from authorization
-- make authorization deterministic and deny-by-default
-- protect browser cookie sessions from CSRF
+- prevent cross-tenant data access unless explicitly authorized through a system-administration path
+- keep authentication and authorization separate
+- make authorization deterministic, centralized, and deny-by-default
+- protect browser cookie sessions from CSRF-style mutation attempts
 - keep sessions revocable and persisted outside the application process
 - make token reuse, suspicious login, failed credentials, and security-sensitive lifecycle events visible
 - preserve audit durability through an outbox worker
 - make audit history tamper-evident at the application level
-- avoid trusting client-supplied proxy or IP headers unless a trusted proxy chain is explicitly configured
+- avoid trusting client-supplied proxy/IP headers unless trusted proxy hops are explicitly configured
 - minimize sensitive data exposure in responses and logs
 
 ## Protected Assets
 
-The private prototype treated the following as protected assets:
+The private design treated these as protected assets:
 
 - user credentials and password hashes
-- session, access, and refresh tokens
+- browser session tokens
+- access and refresh tokens
+- refresh-token hashes and token-family state
 - MFA secrets and recovery codes
-- tenant data and governance settings
+- password-reset token material
+- tenant data and tenant governance settings
 - organization hierarchy and membership assignments
 - role, permission, policy, and relationship grants
+- service-account credentials and permission assignments
 - audit logs, security events, and outbox records
-- PII, confidential attributes, performance-related fields, and security-sensitive metadata
+- PII, confidential business attributes, HR-like fields, performance data, and security-sensitive metadata
 
-## Primary Actor Types
+## Actor Types
 
 The design considered several actor types:
 
-- anonymous internet clients
-- authenticated tenant users
-- tenant administrators
-- system administrators
-- browser clients using cookie transport
-- API/mobile clients using bearer tokens
-- service accounts using machine credentials
-- outbox worker processes
-- database migration processes
+- anonymous internet client
+- authenticated tenant user
+- tenant administrator
+- system administrator
+- browser client using cookie transport
+- API/mobile client using bearer transport
+- service account using a machine credential
+- outbox worker process
+- database migration process
 
 ## Trust Boundaries
 
 Important trust boundaries included:
 
-- client to Express API
-- reverse proxy to application process
-- API request path to database
-- API request path to audit/security outbox
-- outbox worker to durable audit/security tables
-- browser cookie transport to CSRF-protected mutation routes
-- bearer-token transport to token/session verification
+- internet/client boundary into the Express API
+- reverse proxy boundary into the application process
+- API request path into Prisma/PostgreSQL
+- API request path into audit/security outbox
+- outbox worker into durable audit/security tables
+- browser cookie transport into CSRF-protected mutation routes
+- bearer token transport into token/session verification
+- service-account credential boundary into machine-principal handling
 
-## Major Threats and Controls
+## Major Threats And Controls
 
 ### Cross-tenant access
 
-Tenant boundaries were intended to be enforced before business-level permission checks. Tenant-owned queries were expected to use server-derived tenant context rather than tenant IDs supplied by clients.
+Tenant boundaries were treated as a first-order security boundary.
+
+Tenant-owned records should be accessed through server-derived tenant context, not tenant IDs supplied by request bodies. Business-level permissions are not safe if the target object belongs to another tenant.
 
 ### CSRF against browser sessions
 
-Browser cookie flows used CSRF protection for mutating requests. Bearer-only API clients were not forced through browser CSRF checks.
+Browser cookie flows require CSRF protection for mutating requests. Bearer-only API/mobile clients should not be forced through browser CSRF checks because they do not rely on ambient browser cookies.
 
 ### Token replay and refresh-token reuse
 
-Refresh tokens were persisted only as hashes and rotated on use. Reuse attempts were classified so that benign parallel races could be rejected without issuing credentials, while suspicious or repeated reuse could revoke the affected session family.
+Refresh tokens are designed to be persisted only as hashes and rotated on use.
+
+Reuse attempts are classified so that benign parallel races can be rejected without issuing credentials, while suspicious or repeated reuse can revoke the affected session family.
 
 ### Weak or stale sessions
 
-Sessions were DB-backed and revocable. Sensitive operations could require higher session trust through step-up authentication.
+Sessions are DB-backed and revocable. Sensitive operations can require higher session trust through step-up authentication.
 
 ### Machine identity confusion
 
-Service accounts were modeled as machine principals, not human users. Human-only routes were expected to reject service-account principals explicitly.
+Service accounts are modeled as machine principals, not human users.
+
+Human-only routes should reject service-account principals explicitly. Sensitive service-account permissions require extra guardrails because machine credentials have different risk than human sessions.
 
 ### Relationship overreach
 
-Relationship-based access was designed to be resource-bound. Relation checks needed tenant, subject, relation type, resource type, and resource ID context.
+Relationship-based access must be bound to an exact tenant, subject, relation type, resource type, and resource ID.
+
+A vague relationship label such as “manager” is not enough by itself. The permission decision needs the exact resource being accessed.
 
 ### PII and sensitive-field leakage
 
-Responses were expected to use field projection and classification so that restricted fields fail closed unless explicit grants exist.
+Route authorization is not enough.
+
+A user may be allowed to access a resource while still being denied fields such as PII, confidential attributes, internal metadata, performance metrics, or security details. These fields should fail closed unless explicit grants exist.
 
 ### Audit loss or audit inconsistency
 
-Audit and security writes were routed through durable outbox processing. Audit logs used a per-tenant hash-chain append strategy to provide tamper evidence under normal application operation.
+Audit and security writes are routed through durable outbox processing.
+
+Audit logs use a per-tenant hash-chain append strategy so historical modification or deletion can be detected by verification tooling under the application-level threat model.
 
 ## Security Review Rule
 
@@ -103,5 +120,20 @@ A change should be treated as security-breaking if it:
 - bypasses centralized authorization
 - removes audit/security visibility
 - makes failure modes less explicit
+- merges browser-cookie and API-token behavior in a confusing way
+- turns a fail-closed path into a fail-open path
 
 Such changes should require a compensating control and targeted regression tests.
+
+## What This Model Does Not Claim
+
+This case study does not claim:
+
+- external security certification
+- independent penetration testing
+- compliance approval
+- absolute audit immutability
+- full protection against an attacker who controls the database, application code, backups, and logs
+- complete production operational maturity
+
+The professional claim is narrower and more honest: the private prototype explored real backend security boundaries and documented how those boundaries should be validated before production use.
