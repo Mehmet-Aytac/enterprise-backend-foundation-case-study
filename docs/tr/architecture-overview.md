@@ -1,84 +1,84 @@
-# Architecture Overview
+# Mimari Genel Bakış
 
-Bu doküman, private enterprise backend foundation arkasındaki kavramsal mimariyi açıklar.
+Bu doküman, özel backend altyapı temelinin kavramsal mimarisini açıklar.
 
-Public repository source code içermez. Amaç; yapıyı, sınırları ve engineering kararlarını portfolio review ve teknik tartışma için yeterince net göstermektir.
+Herkese açık repository kaynak kod içermez. Amaç; yapıyı, sınırları ve mühendislik kararlarını portfolyo incelemesi ve teknik tartışma için yeterince net göstermektir.
 
-## Design Goal
+## Tasarım Hedefi
 
-Private proje; multi-tenant ERP ve internal business applications için aktif geliştirme aşamasındaki, production-oriented bir backend foundation olarak tasarlanmıştır.
+Özel proje; çok kiracılı (multi-tenant) ERP ve iç iş uygulamaları için aktif geliştirme aşamasındaki, üretim ortamına hazırlık hedefli (production-oriented) bir backend altyapı temeli olarak tasarlanmıştır.
 
-Finished commercial product olarak sunulmaz. Her domain module'ün authentication, authorization, tenancy, validation ve audit kontrollerini tekrar tekrar yazmasını önleyen reusable bir foundation hedeflenir.
+Bitmiş ticari ürün olarak sunulmaz. Her iş modülünün kimlik doğrulama, yetkilendirme, kiracı yalıtımı, doğrulama ve denetim kontrollerini tekrar tekrar yazmasını önleyen yeniden kullanılabilir bir temel hedeflenir.
 
-Foundation şu platform konularına odaklanır:
+Bu altyapı şu platform konularına odaklanır:
 
-- authentication
-- authorization
-- tenant isolation
-- audit and security logging
-- response minimization
-- request validation
-- error handling
-- observability
-- deployment readiness
-- security-sensitive behavior için regression testing
+- kimlik doğrulama (authentication)
+- yetkilendirme (authorization)
+- kiracı yalıtımı (tenant isolation)
+- denetim ve güvenlik kayıtları
+- yanıt sadeleştirme (response minimization)
+- istek doğrulama
+- hata yönetimi
+- gözlemlenebilirlik
+- dağıtım hazırlığı
+- güvenliğe duyarlı davranışlar için regresyon testleri
 
-Ana fikir: future modules business behavior ekleyebilmeli ama aynı trusted security pipeline'ı kullanmalıdır.
+Ana fikir: Gelecekteki modüller iş davranışı ekleyebilmeli, ancak aynı güvenilir güvenlik akışını kullanmalıdır.
 
-## High-Level Runtime Shape
+## Üst Düzey Çalışma Yapısı
 
 ```mermaid
 flowchart TD
-    Client[Client] --> API[Express API Process]
-    API --> Middleware[Middleware Pipeline]
-    Middleware --> Auth[Auth Resolution]
-    Auth --> Permission[Permission Engine]
-    Permission --> Modules[Domain Modules]
+    Client[İstemci] --> API[Express API Süreci]
+    API --> Middleware[Ara Katman Akışı]
+    Middleware --> Auth[Kimlik Doğrulama]
+    Auth --> Permission[Yetki Karar Motoru]
+    Permission --> Modules[İş Modülleri]
     Modules --> Database[(PostgreSQL)]
-    Modules --> Outbox[Audit/Security Outbox]
-    Outbox --> Worker[Worker Process]
-    Worker --> Audit[(Audit Logs / Security Events)]
+    Modules --> Outbox[Denetim / Güvenlik İş Kuyruğu]
+    Outbox --> Worker[Worker Süreci]
+    Worker --> Audit[(Denetim Kayıtları / Güvenlik Olayları)]
 ```
 
-Private implementation, request path ile background audit/security materialization işini ayırır. API process HTTP requests'i karşılar. Worker process durable outbox records'ı audit ve security event storage'a işler.
+Özel uygulama, istek akışı ile arka plan denetim/güvenlik işleme sürecini ayırır. API süreci HTTP isteklerini karşılar. Worker süreci ise dayanıklı iş kuyruğundaki kayıtları denetim ve güvenlik olaylarına dönüştürür.
 
-## Conceptual Layers
+## Kavramsal Katmanlar
 
-### Core Layer
+### Çekirdek Katman
 
-Core layer, modüllerin lokal olarak yeniden yazmaması gereken cross-cutting rules içerir:
+Çekirdek katman, modüllerin yerel olarak yeniden yazmaması gereken ortak kuralları içerir:
 
-- authentication ve session logic
-- access-control models ve permission evaluation
-- request context ve access-scope building
-- tenant ve governance helpers
-- audit/security event services
-- request state, authorization, CSRF, rate limiting, body/content-type checks ve error handling middleware'leri
-- response classification ve field projection helpers
-- safe application behavior için shared utilities
+- kimlik doğrulama ve oturum mantığı
+- erişim kontrol modelleri ve yetki değerlendirmesi
+- istek bağlamı ve erişim kapsamı oluşturma
+- kiracı ve yönetişim yardımcıları
+- denetim/güvenlik olayı servisleri
+- istek durumu, yetkilendirme, CSRF, hız sınırlama, içerik kontrolü ve hata yönetimi ara katmanları
+- yanıt sınıflandırma ve alan filtreleme yardımcıları
+- güvenli uygulama davranışı için ortak yardımcılar
 
-Bu layer uygulamanın bina temeli gibidir. Her kat kendi temelini atarsa bina güvenli olmaz. Bu projede modüllerin tek shared foundation üzerinde durması beklenir.
+Bu katman uygulamanın bina temeli gibidir. Her kat kendi temelini atarsa bina güvenli olmaz. Bu projede modüllerin tek ortak temel üzerinde durması beklenir.
 
-### Infrastructure Layer
+### Altyapı Katmanı
 
-Infrastructure layer runtime-facing concerns'ü izole eder:
+Altyapı katmanı çalışma zamanı ve platforma dönük konuları izole eder:
 
-- environment validation
-- database client setup
-- logging
-- telemetry
-- password hashing
-- token signing
-- cryptographic helpers
-- gerektiğinde notification/delivery adapters
+- ortam doğrulama
+- veritabanı istemcisi kurulumu
+- kayıt/loglama
+- telemetri
+- parola özetleme
+- token imzalama
+- kriptografik yardımcılar
+- gerektiğinde bildirim veya teslimat bağdaştırıcıları
 
-Amaç framework ve platform detaylarının business modules içine gereğinden fazla sızmasını engellemektir.
+Amaç, framework ve platform detaylarının iş modüllerinin içine gereğinden fazla sızmasını engellemektir.
 
-### Module Layer
+### Modül Katmanı
 
-Module layer API-facing features ve gelecekteki business/domain modules içerir.
+Modül katmanı API'ye açık özellikleri ve gelecekteki iş modüllerini içerir.
 
-Her modül predictable bir şekil izler:
+Her modül öngörülebilir bir şekil izler:
 
 ```text
 src/modules/<module-key>/
@@ -89,100 +89,79 @@ src/modules/<module-key>/
   <module-key>.types.ts
 ```
 
-Optional dosyalar precise responsibility taşıdığında kullanılabilir: access-fact resolution, response projection, audit helpers, state machines veya calculation engines gibi.
+Opsiyonel dosyalar yalnızca net bir sorumluluğa sahipse kullanılmalıdır: erişim bilgisi çözümleme, yanıt alanı filtreleme, denetim yardımcıları, durum makineleri veya hesaplama motorları gibi.
 
-Beklenen dependency rule:
+Beklenen bağımlılık kuralı:
 
 ```text
 modules -> core + infrastructure
 modules -x-> direct module-to-module shortcuts
 ```
 
-Direct module-to-module shortcuts kaçınılır; çünkü authorization, tenant checks, audit behavior veya projection rules yanlışlıkla bypass edilebilir.
+Modülden modüle doğrudan kısayollardan kaçınılır; çünkü yetkilendirme, kiracı kontrolleri, denetim davranışı veya alan filtreleme kuralları yanlışlıkla atlanabilir.
 
-### Worker and Tooling Layer
+### Worker ve Araç Katmanı
 
-Private prototype ayrıca non-request-path processes ve tools kullanır:
+Özel prototip ayrıca istek akışının dışında çalışan süreçler ve araçlar kullanır:
 
-- audit/security outbox worker
-- audit hash-chain verification
-- service-account bootstrap tooling
-- authentication hot-path benchmark
-- concurrent API smoke testing
-- OpenAPI contract validation
-- CI-style verification commands
+- denetim/güvenlik iş kuyruğu worker süreci
+- denetim kayıt zinciri doğrulama aracı
+- servis hesabı hazırlama aracı
+- kimlik doğrulama sıcak yol performans ölçümü
+- eşzamanlı API duman testi
+- OpenAPI sözleşme doğrulaması
+- CI tarzı doğrulama komutları
 
-Enterprise backend kalitesi sadece route handler yazmak değildir. Repeatable validation, safe operational behavior ve failure visibility de önemlidir.
+Kurumsal backend kalitesi yalnızca rota handler yazmak değildir. Tekrarlanabilir doğrulama, güvenli operasyonel davranış ve hata görünürlüğü de önemlidir.
 
-## Request Pipeline
+## İstek Akışı
 
-Request pipeline, business logic çalışmadan önce request'in safe security context'e sahip olmasını sağlar.
+İstek akışı, iş mantığı çalışmadan önce isteğin güvenli bir bağlama sahip olmasını sağlar.
 
 Kavramsal sıra:
 
-1. Request state initialize edilir.
-2. Browser session, bearer token veya service-account token authenticate edilir.
-3. Authenticated principal resolve edilir.
-4. Trusted request context build edilir.
-5. Access scope build edilir.
-6. Route permission enforce edilir.
-7. Controller ve service logic çalışır.
-8. Gerekirse audit/security events yazılır.
-9. Projected ve classified response döndürülür.
+1. İstek durumu başlatılır.
+2. Tarayıcı oturumu, bearer token veya servis hesabı kimliği doğrulanır.
+3. Kimliği doğrulanmış aktör çözülür.
+4. Güvenilir istek bağlamı oluşturulur.
+5. Erişim kapsamı oluşturulur.
+6. Rota izni uygulanır.
+7. Controller ve servis mantığı çalışır.
+8. Gerekirse denetim/güvenlik olayları yazılır.
+9. Alanları filtrelenmiş ve sınıflandırılmış yanıt döndürülür.
 
-```mermaid
-sequenceDiagram
-    participant C as Client
-    participant A as API
-    participant Auth as Auth Guard
-    participant P as Permission Engine
-    participant M as Module Service
-    participant DB as PostgreSQL
-    participant O as Audit Outbox
+Controller'lar yetki kararı vermemelidir. Rota gerekli izni bildirir; yetki karar motoru güvenilir sunucu verileriyle isteği değerlendirir.
 
-    C->>A: HTTP request
-    A->>Auth: Resolve session/token/principal
-    Auth->>P: Build context and access scope
-    P-->>A: Allow or deny
-    A->>M: Execute business operation
-    M->>DB: Tenant-scoped read/write
-    M->>O: Enqueue audit/security event
-    A-->>C: Projected response
-```
+## İş Modülü Sözleşmesi
 
-Controller'lar permission decision vermemelidir. Route gerekli permission'ı declare eder; permission engine trusted server-derived facts ile request'i değerlendirir.
+Gelecekteki iş modülünün şu kuralları izlemesi beklenir:
 
-## Domain Module Contract
+- iş mantığından önce istek girdisi doğrulanmalı
+- kiracı bağlamı istek gövdesinden değil kimliği doğrulanmış istek durumundan alınmalı
+- sahiplik, şube, ekip, sınıflandırma ve ilişki bilgileri sunucu tarafında yüklenmeli
+- açık rota izinleri bildirilmeli
+- gerekli yetkilendirme bilgileri çözülemiyorsa güvenli biçimde reddedilmeli
+- hassas yanıt alanları için alan filtreleme kullanılmalı
+- yüksek etkili işlemler için denetim/güvenlik olayları yazılmalı
+- rotalar OpenAPI içinde belgelenmeli
+- kiracı sınırları, yetkilendirme hataları, doğrulama, yanıt sızıntıları, iş kuyruğu davranışı ve eşzamanlılık durumları test edilmeli
 
-Future domain module'ün şu kuralları izlemesi beklenir:
+Bu sözleşme, altyapı temelini yeniden kullanılabilir yapan güvenlik anlaşmasıdır.
 
-- business logic öncesi request input validate edilmeli
-- tenant context request body'den değil authenticated request state'ten alınmalı
-- ownership, branch, team, classification ve relationship facts server-side yüklenmeli
-- explicit route permissions declare edilmeli
-- required authorization facts resolve edilemiyorsa fail closed davranılmalı
-- sensitive response fields için field projection kullanılmalı
-- high-impact actions için audit/security events yazılmalı
-- routes OpenAPI içinde documented olmalı
-- tenant boundaries, authorization failures, validation, response leaks, audit/outbox behavior ve concurrency-sensitive cases test edilmeli
+## Neden Önemli?
 
-Bu contract, foundation'ı reusable yapan güvenlik sözleşmesidir.
+Çok kiracılı iş sistemlerinde tehlikeli hatalar genelde küçük yerel kısayollardan çıkar:
 
-## Why This Structure Matters
+- bir sorgu kiracı kapsamını unutur
+- bir endpoint istemciden gelen sahiplik bilgisine güvenir
+- bir rota yetkilendirme ara katmanını atlar
+- bir controller ham ORM nesnesi döndürür
+- bir modül iş verisi yazar ama denetim kaydını atlar
 
-Multi-tenant business systems içinde tehlikeli bug'lar genelde küçük lokal shortcut'lardan çıkar:
+Mimari; kimlik doğrulama, yetkilendirme, kiracı yalıtımı, alan filtreleme, denetim ve doğrulamayı isteğe bağlı alışkanlıklar yerine yeniden kullanılabilir varsayılanlar yaparak bu riskleri azaltmaya çalışır.
 
-- bir query tenant scope'u unutur
-- bir endpoint client-supplied owner ID'ye güvenir
-- bir route permission middleware'i bypass eder
-- bir controller raw ORM object döndürür
-- bir module business data yazar ama audit evidence atlar
-- bir token flow browser ve API clients ayrımını bulanıklaştırır
+## Portfolyo Çıkarımı
 
-Architecture; authentication, authorization, tenant isolation, projection, auditing ve validation'ı optional habits değil reusable defaults yaparak bu riskleri azaltmaya çalışır.
+Bu proje en güçlü şekilde basit ERP ekran projesi değil, backend altyapı temeli case study'si olarak anlatılır.
 
-## Portfolio Takeaway
-
-Bu proje en güçlü şekilde basit ERP ekran projesi değil, backend foundation case study olarak anlatılır.
-
-Değerli taraf system thinking'dir: boundaries, central enforcement, failure modes, validation ve honest production-readiness limits.
+Değerli taraf sistem düşüncesidir: sınırlar, merkezi uygulama noktaları, hata biçimleri, doğrulama ve dürüst üretim sınırları.
