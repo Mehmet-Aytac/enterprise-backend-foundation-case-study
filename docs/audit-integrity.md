@@ -1,29 +1,50 @@
 # Audit and Integrity
 
-This document summarizes the audit and integrity model explored in the private enterprise backend foundation prototype.
+This document summarizes the audit and integrity model explored in the private enterprise backend foundation.
 
-The design goal was not to claim absolute immutability. The goal was to make important application-level changes traceable and tamper-evident under normal application operation.
+The design goal is not to claim absolute immutability. The goal is to make important application-level changes traceable and tamper-evident under normal application operation.
 
-## Audit and Security Events
+## Audit vs Security Events
 
 The private prototype separated two related concepts:
 
-- audit logs: records of business or administrative actions
-- security events: records of authentication, authorization, credential, token, and suspicious activity events
+| Concept | Purpose |
+|---|---|
+| Audit logs | Records of business, administrative, or domain actions. |
+| Security events | Records of authentication, authorization, credential, token, session, and suspicious activity events. |
 
-This separation allows operational audit history and security monitoring to evolve independently.
+This separation allows operational history and security monitoring to evolve independently.
+
+For example, a sales order status change and a suspicious refresh-token reuse attempt should not be treated as the same kind of event, even though both may matter during an investigation.
 
 ## Durable Outbox Pattern
 
 Audit and security writes were designed to flow through a durable outbox.
 
-The intended behavior was:
+Conceptual flow:
 
-1. the API request performs a business or security-sensitive action
-2. the application enqueues an outbox record
-3. a worker process materializes that record into the durable audit or security-event table
-4. failed processing is retried with bounded backoff
-5. unrecoverable records can move to dead-letter state for investigation
+```mermaid
+sequenceDiagram
+    participant API as API Request
+    participant DB as PostgreSQL Transaction
+    participant O as Audit/Security Outbox
+    participant W as Worker
+    participant A as Audit/Security Tables
+
+    API->>DB: Business/security-sensitive write
+    DB->>O: Enqueue outbox record
+    W->>O: Poll pending record
+    W->>A: Materialize audit/security event
+    W->>O: Mark processed or schedule retry
+```
+
+Intended behavior:
+
+1. The API request performs a business or security-sensitive action.
+2. The application enqueues an outbox record.
+3. A worker process materializes that record into the durable audit or security-event table.
+4. Failed processing is retried with bounded backoff.
+5. Unrecoverable records can move to dead-letter state for investigation.
 
 This keeps the request path resilient while still preserving security and audit visibility.
 
@@ -37,7 +58,14 @@ Conceptually, each new audit entry includes:
 - the canonicalized payload of the new entry
 - the computed hash for the new entry
 
-This makes historical modification or deletion detectable when the chain is verified.
+This makes historical modification, deletion, or ordering changes detectable when the chain is verified.
+
+```mermaid
+flowchart LR
+    A1[Audit Entry 1\nHash H1] --> A2[Audit Entry 2\nPrev H1 / Hash H2]
+    A2 --> A3[Audit Entry 3\nPrev H2 / Hash H3]
+    A3 --> Verify[Verification detects broken links]
+```
 
 ## Concurrency Consideration
 
@@ -45,7 +73,9 @@ A key challenge for audit hash chains is concurrent writes.
 
 If two workers append audit entries for the same tenant at the same time, both could read the same previous hash and create a forked chain.
 
-The private prototype handled this by using a tenant-scoped transaction lock during hash-chain append so that each tenant's audit chain is appended deterministically.
+The private prototype addressed this by using tenant-scoped transaction locking during hash-chain append so that each tenant's audit chain is appended deterministically.
+
+In simpler terms: only one worker should be allowed to add the next link for the same tenant at the same time.
 
 ## What This Provides
 
@@ -55,7 +85,8 @@ The design provides:
 - detection support if historical audit rows are changed or removed
 - deterministic append behavior under concurrent worker execution
 - a clear verification command in the private repository
-- a better incident-investigation trail for security-sensitive actions
+- a stronger incident-investigation trail for security-sensitive actions
+- separation between product-facing status history and security/accountability evidence
 
 ## What This Does Not Provide
 
@@ -72,11 +103,18 @@ For stronger production guarantees, the system would need additional operational
 - external hash anchoring
 - incident response procedures
 - periodic verification jobs
+- restricted database access policies
 
-## Operational Lessons
+## Correct Claim
 
-The most important audit lesson was to avoid overstating the guarantee.
+The correct claim is **tamper-evident**, not **tamper-proof**.
 
-The correct claim is tamper-evidence, not absolute immutability.
+In a hosted SaaS model, the provider can protect database access, application code, audit trails, and external logs more strongly.
 
-In a hosted SaaS model, the provider can protect audit integrity more strongly because customers do not have direct database access. In a self-hosted or root-access environment, audit guarantees must be described more carefully because infrastructure administrators can potentially modify both data and application behavior.
+In a self-hosted or root-access environment, infrastructure administrators may be able to modify data, code, or logs. In that model, audit integrity claims should be phrased as application-level tamper evidence unless external anchoring, protected backups, or third-party log export are added.
+
+## Portfolio Takeaway
+
+The professional value of this design is not pretending to solve every audit problem.
+
+The value is recognizing where application-level audit integrity helps, where it stops, and what operational controls would be needed before claiming stronger production guarantees.
