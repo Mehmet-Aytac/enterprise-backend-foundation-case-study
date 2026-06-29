@@ -1,79 +1,79 @@
-# Data Classification
+# Veri Sınıflandırma
 
-Bu doküman, private enterprise backend foundation içinde ele alınan response-minimization ve field-projection strategy'yi özetler.
+Bu doküman, özel backend altyapı temelinde ele alınan yanıt sadeleştirme (response minimization) ve alan filtreleme (field projection) yaklaşımını özetler.
 
-## Core Idea
+## Temel Fikir
 
-Private prototype her response field'ı aynı güvenlik seviyesinde kabul etmez.
+Özel prototip, her yanıt alanını aynı güvenlik seviyesinde kabul etmez.
 
-Route authorization şu soruyu cevaplar:
+Rota yetkilendirmesi (route authorization) şu soruyu cevaplar:
 
-> Bu principal bu resource'a erişebilir mi?
+> Bu aktör (principal) bu kaynağa erişebilir mi?
 
-Response projection ikinci bir soruyu cevaplar:
+Alan filtreleme ise ikinci bir soruyu cevaplar:
 
-> Bu principal bu resource üzerindeki hangi field'ları görebilir?
+> Bu aktör bu kaynak üzerindeki hangi alanları görebilir?
 
 Bunlar farklı problemlerdir.
 
-Bir user bir record'a erişebilir; fakat PII, confidential business data, financial details, performance metrics, security metadata veya internal policy state görme hakkına sahip olmayabilir.
+Bir kullanıcı bir kayda erişebilir; fakat kişisel veri (PII), gizli iş verisi (confidential business data), finansal ayrıntılar, performans ölçümleri, güvenliğe duyarlı üstveri veya iç politika bilgilerini görme hakkına sahip olmayabilir.
 
-## Example Classifications
+## Örnek Sınıflandırmalar
 
-Private design şu classification'ları ele aldı:
+Özel tasarım şu sınıflandırmaları ele aldı:
 
-| Classification | Anlam | Default direction |
+| Sınıflandırma | Anlam | Varsayılan yaklaşım |
 |---|---|---|
-| Public | Broad authenticated veya public display için güvenli alanlar | Genellikle visible |
-| Internal | Tenant-internal operational data | Route allow ise visible olabilir |
-| Performance | Productivity, review veya manager-visible metrics | Explicit grant olmadan hidden |
-| Confidential | Sensitive internal attributes veya business metadata | Explicit grant olmadan hidden |
-| PII | Personally identifying veya HR-like information | Explicit grant olmadan hidden |
-| Security-sensitive | Audit, incident, session veya policy metadata | Explicit grant olmadan hidden |
+| Herkese açık | Geniş gösterim için güvenli alanlar | Genellikle görünür |
+| İç kullanım | Kiracı içi operasyonel veri | Rota izni varsa görünebilir |
+| Performans | Üretkenlik, değerlendirme veya yönetici görünürlüğündeki ölçümler | Açık izin olmadan gizli |
+| Gizli | Hassas iç alanlar veya iş üstverisi | Açık izin olmadan gizli |
+| Kişisel veri | Kişiyi tanımlayan veya İK benzeri bilgi | Açık izin olmadan gizli |
+| Güvenliğe duyarlı | Denetim, olay, oturum veya politika üstverisi | Açık izin olmadan gizli |
 
-Restricted classifications, authenticated principal explicit grants'e sahip değilse fail closed davranmalıdır.
+Kısıtlı sınıflandırmalar, kimliği doğrulanmış aktör açık izne sahip değilse güvenli biçimde gizli kalmalıdır.
 
-## Why This Matters
+## Neden Önemli?
 
-Yaygın backend hatalarından biri controller'lardan raw ORM objects döndürmektir.
+Yaygın backend hatalarından biri controller katmanından ham ORM nesneleri döndürmektir.
 
-Bu, yanlışlıkla şu tür alanları expose edebilir:
+Bu, yanlışlıkla şu tür alanları açığa çıkarabilir:
 
-- internal security metadata
-- confidential attributes
-- employee identifiers
-- PII
-- financial details
-- performance data
-- tenant governance settings
-- implementation-specific error details
+- iç güvenlik üstverisi
+- gizli alanlar
+- çalışan tanımlayıcıları
+- kişisel veri
+- finansal ayrıntılar
+- performans verisi
+- kiracı yönetişim ayarları
+- uygulama içi hata ayrıntıları
 
-Private prototype bu pattern'den kaçınmak için response-shaping ve field-projection concepts kullandı.
+Özel prototip bu örüntüden kaçınmak için yanıt şekillendirme ve alan filtreleme yaklaşımını kullandı.
 
-## Projection Strategy
+## Alan Filtreleme Stratejisi
 
-Intended strategy:
+Hedeflenen strateji:
 
-1. Route authorization principal'ın resource'a erişip erişemeyeceğine karar verir.
-2. Response projection hangi fields'ın dönebileceğine karar verir.
-3. Restricted fields explicit permissions veya grants gerektirir.
-4. Sensitive data için include groups request-by-request authorize edilir.
-5. OpenAPI response schemas projected response contract ile eşleşmelidir.
-6. Testler restricted fields'ın grant olmadan hidden, grant ile visible olduğunu kanıtlamalıdır.
+1. Rota yetkilendirmesi, aktörün kaynağa erişip erişemeyeceğine karar verir.
+2. Alan filtreleme, hangi alanların yanıta dönebileceğine karar verir.
+3. Kısıtlı alanlar açık izin veya rol gerektirir.
+4. Hassas veri grupları her istek için ayrıca yetkilendirilir.
+5. OpenAPI yanıt şemaları, filtrelenmiş yanıt sözleşmesiyle uyumlu olmalıdır.
+6. Testler, kısıtlı alanların izin yokken gizli ve izin varken görünür olduğunu kanıtlamalıdır.
 
-## Example
+## Örnek
 
-Bir tenant user user listesi okuma permission'ına sahip olabilir:
+Bir kiracı kullanıcısı kullanıcı listesini okuma iznine sahip olabilir:
 
 ```text
 users.read
 ```
 
-Bu permission display name, status ve role summary gibi safe operational fields döndürebilir.
+Bu izin; görünen ad, durum ve rol özeti gibi güvenli operasyonel alanları döndürebilir.
 
-Aynı user personal, confidential, security-sensitive veya internal governance fields'ı otomatik olarak almamalıdır.
+Aynı kullanıcı kişisel, gizli, güvenliğe duyarlı veya iç yönetişim alanlarını otomatik olarak almamalıdır.
 
-Bu alanlar daha dar permission'lar gerektirmelidir:
+Bu alanlar daha dar izinler gerektirmelidir:
 
 ```text
 users.read.pii
@@ -81,22 +81,22 @@ users.read.attributes
 security-events.read.details
 ```
 
-Exact permission names implementation detail'dır. Önemli pattern şudur: broad route access, broad sensitive-field access'e dönüşmemelidir.
+Tam izin adları uygulama detayıdır. Önemli örüntü şudur: geniş rota erişimi, geniş hassas alan erişimine dönüşmemelidir.
 
-## Review Checklist
+## İnceleme Kontrol Listesi
 
-Bir response field expose edilmeden önce şu sorular cevaplanmalıdır:
+Bir yanıt alanı açığa çıkarılmadan önce şu sorular cevaplanmalıdır:
 
-- Bu field hangi classification'a sahip?
-- Bu field default olarak safe mi?
-- Hangi permission veya role bu field'ı okuyabilir?
-- Tenant data, PII, HR data, financial data, security details veya internal governance state leak edebilir mi?
-- OpenAPI schema possible response shape'i açıklıyor mu?
-- Grant olmadan hidden olduğunu kanıtlayan test var mı?
-- Error handling internal implementation details expose etmiyor mu?
+- Bu alan hangi sınıflandırmaya sahip?
+- Bu alan varsayılan olarak güvenli mi?
+- Hangi izin veya rol bu alanı okuyabilir?
+- Kiracı verisi, kişisel veri, İK verisi, finansal veri, güvenlik ayrıntısı veya iç yönetişim bilgisi sızdırabilir mi?
+- OpenAPI şeması olası yanıt şeklini açıklıyor mu?
+- İzin olmadan gizli kaldığını kanıtlayan test var mı?
+- Hata yönetimi uygulama içi ayrıntıları açığa çıkarmıyor mu?
 
-## Portfolio Takeaway
+## Portfolyo Çıkarımı
 
-Ana ders: authorization tek başına yeterli değildir.
+Ana ders: yetkilendirme tek başına yeterli değildir.
 
-Business applications, özellikle internal tools ve multi-tenant systems içinde backend response minimization'a da ihtiyaç duyar. Böylece broad operational access, otomatik olarak broad sensitive-data access'e dönüşmez.
+İş uygulamalarında, özellikle iç araçlarda ve çok kiracılı sistemlerde backend ayrıca yanıt sadeleştirmeye ihtiyaç duyar. Böylece geniş operasyonel erişim, otomatik olarak geniş hassas veri erişimine dönüşmez.
