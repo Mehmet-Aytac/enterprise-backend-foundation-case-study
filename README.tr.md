@@ -90,19 +90,34 @@ Temel fikir basit: iş modülleri kendi güvenlik kurallarını uydurmamalıdır
 | [Portfolyo Konumlandırma](./docs/tr/portfolio-positioning.md) | CV, LinkedIn ve görüşmelerde bu çalışmanın nasıl sunulacağı. |
 | [Görüşme Anlatım Rehberi](./docs/tr/interview-walkthrough.md) | Private kodu açmadan teknik görüşmede projeyi anlatmak için rehber. |
 
+## Teknoloji Yığını
+
+Özel uygulama, aşağıdaki yığın ve kavramları kullanmıştır:
+
+- TypeScript
+- Node.js
+- Express
+- PostgreSQL
+- Prisma
+- Zod
+- OpenAPI
+- Docker
+- Node test runner
+- CI tarzı doğrulama, entegrasyon testleri ve güvenlik/eşzamanlılık kontrolleri
+
 ## Bu Repository Nasıl Okunmalı?
 
-Bu repoyu bir **case-study klasörü** gibi oku, bir codebase gibi değil.
+Bu repoyu bir **case-study klasörü** gibi okunmalıdır, bir codebase gibi değil.
 
 Önerilen okuma sırası:
 
-1. Bu README ile başla.
-2. Terim standardı için [Terimler ve Yazım Standardı](./docs/tr/terimler.md) dosyasına bak.
-3. Sistem şeklini anlamak için [Mimari Genel Bakış](./docs/tr/architecture-overview.md) dosyasını oku.
-4. Ana güvenlik kararlarını anlamak için [Güvenlik Modeli](./docs/tr/security-model.md), [Yetkilendirme Modeli](./docs/tr/authorization-model.md) ve [Yetki Karar Motoru Akışı](./docs/tr/permission-engine-decision-flow.md) dosyalarını oku.
-5. İddiaların nasıl kontrol edildiğini görmek için [Test ve Doğrulama](./docs/tr/testing-and-validation.md) dosyasını oku.
-6. Neyin iddia edilmediğini anlamak için [Sınırlar](./docs/tr/limitations.md) dosyasını oku.
-7. Kısa görüşme anlatımı için [Görüşme Anlatım Rehberi](./docs/tr/interview-walkthrough.md) dosyasını kullan.
+1. Bu README ile başlanır.
+2. Terim standardı için [Terimler ve Yazım Standardı](./docs/tr/terimler.md) dosyasına bakılır.
+3. Sistem şeklini anlamak için [Mimari Genel Bakış](./docs/tr/architecture-overview.md) dosyası okunur.
+4. Ana güvenlik kararlarını anlamak için [Güvenlik Modeli](./docs/tr/security-model.md), [Yetkilendirme Modeli](./docs/tr/authorization-model.md) ve [Yetki Karar Motoru Akışı](./docs/tr/permission-engine-decision-flow.md) dosyaları okunur.
+5. İddiaların nasıl kontrol edildiğini görmek için [Test ve Doğrulama](./docs/tr/testing-and-validation.md) dosyası okunur.
+6. Neyin iddia edilmediğini anlamak için [Sınırlar](./docs/tr/limitations.md) dosyası okunur.
+7. Kısa görüşme anlatımı için [Görüşme Anlatım Rehberi](./docs/tr/interview-walkthrough.md) dosyası kullanılır.
 
 ## Kaynak Kod Politikası
 
