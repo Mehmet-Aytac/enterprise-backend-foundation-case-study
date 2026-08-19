@@ -1,12 +1,14 @@
-# Enterprise Backend Foundation Case Study
+# Enterprise ERP / SaaS Platform Case Study
 
 Dil: [English](./README.md) | [Türkçe](./README.tr.md)
 
-**Özel kaynak kodlu (private-source), aktif geliştirme aşamasındaki ve üretim ortamına hazırlık hedefiyle (production-oriented) tasarlanan bir backend altyapı temeli (backend foundation)** için herkese açık mimari ve doğrulama çalışmasıdır.
+**Özel kaynak kodlu (private-source), aktif geliştirme aşamasındaki, full-stack ERP/SaaS platformu** için herkese açık mimari, doğrulama ve mühendislik case study'sidir.
 
-Özel depoda tutulan proje; çok kiracılı (multi-tenant) ERP ve iç araçlar backend'inin kimlik doğrulama (authentication), yetkilendirme (authorization), kiracı yalıtımı (tenant isolation), denetlenebilirlik (auditability), yanıt sadeleştirme (response minimization), doğrulama (validation) ve dağıtım hazırlığı (deployment readiness) etrafında nasıl yapılandırılabileceğini inceler.
+> Repository adıyla ilgili not: Bu public repository ilk oluşturulduğunda yalnızca backend foundation'ı belgeliyordu. Bu nedenle repository adı ve derinlemesine dokümanların önemli bir bölümü hâlâ backend odaklıdır. Alttaki private proje daha sonra aktif bir full-stack uygulamaya genişledi. Bu case study artık bu gelişimi de belgeliyor; ancak public repository'nin çalıştırılabilir ürün kaynak kodunu içerdiği iddia edilmiyor.
 
-Bu repository **çalıştırılabilir bir açık kaynak başlangıç şablonu (runnable open-source starter template) değildir**. Özel kaynak kod, veritabanı şeması, testler, gizli yapılandırmalar veya ticari ürün planları burada yer almaz. Bu repo; mimari kararları, güvenlik modelini, doğrulama stratejisini, tasarım ödünlerini (trade-offs) ve öğrenilen dersleri portfolyo incelemesi veya teknik görüşmelerde değerlendirilebilecek şekilde belgelemek için vardır.
+Private proje, üretim ortamına hazırlık hedefiyle tasarlanan çok kiracılı backend foundation ile operasyonel React frontend'i bir araya getirir. Backend; authentication, authorization, tenant isolation, auditability, response minimization, validation, dayanıklılık ve deployment hardening konularına odaklanır. Frontend ise ayrı bir workspace içinde gerçek ERP akışları, permission-aware navigation, server-state management, localization, erişilebilir etkileşim bileşenleri ve browser-safe API integration etrafında geliştirilmektedir.
+
+Bu repository **çalıştırılabilir açık kaynak uygulama veya starter template değildir**. Private uygulama kaynak kodunu, veritabanı şemasını, testleri, secret'ları veya ticari ürün planlarını bilinçli olarak içermez. Amaç; mimari kararları, gerçek uygulama örüntülerini, doğrulama stratejisini, trade-off'ları, sınırları ve öğrenilen dersleri portfolyo incelemesi ve teknik görüşmeler için dürüst biçimde belgelemektir.
 
 Türkçe dokümanlarda kullanılan terim standardı için: [Terimler ve Yazım Standardı](./docs/tr/terimler.md)
 
@@ -14,85 +16,139 @@ Türkçe dokümanlarda kullanılan terim standardı için: [Terimler ve Yazım S
 
 | Alan | Özet |
 |---|---|
-| Proje tipi | Özel kaynak kodlu backend altyapı temeli için herkese açık case study |
-| Durum | Aktif geliştirme; üretim ortamına hazırlık hedefli, ancak üretim sertifikası iddiası yok |
-| Hedef kullanım | ERP, iç araçlar, yönetişim ağırlıklı sistemler ve gelecekteki iş modülleri için yeniden kullanılabilir backend altyapısı |
-| Ana odak | Çok kiracılı yapı, kimlik doğrulama, yetkilendirme, kiracı sınırları, denetlenebilirlik, doğrulama ve dağıtım hazırlığı |
-| Public repo amacı | Mimari portfolyo, teknik tartışma ve dürüst kanıt izi |
-| Public repo olmayan şey | Çalıştırılabilir framework, tam kaynak kod yayını veya canlı kurumsal üretim kullanımı iddiası |
+| Proje tipi | Private-source, full-stack multi-tenant ERP/SaaS platformu için public case study |
+| Durum | Aktif geliştirme; production-oriented mühendislik hedefleri var, production certification iddiası yok |
+| Frontend | React + TypeScript + Vite; TanStack Router/Query, Radix Primitives, i18n, design-token CSS ve project-owned Fetch client |
+| Backend | Node.js + TypeScript + Express + Prisma + PostgreSQL; tenancy, auth, authorization, audit, validation ve deployment kontrolleri |
+| Güncel ürün yönü | Yeniden kullanılabilir internal ERP foundation ve gelecekteki vertical/domain ürünler için ortak frontend foundation |
+| Public repo amacı | Mimari portfolyo, teknik tartışma, implementation evidence özeti ve dürüst sınırlar |
+| Public repo olmayan şey | Runnable source release, tamamlanmış ticari ERP, production certification veya canlı müşteri kullanımı iddiası |
 
 ## Bu Çalışma Neyi Gösteriyor?
 
-Bu çalışma basit bir CRUD demosundan çok, backend mühendisliği karar verme becerisini göstermeyi amaçlar.
+Bu case study basit bir CRUD demosu veya ekran koleksiyonundan fazlasını göstermeyi amaçlar. Gerçek bir iş uygulamasında browser UX, API contracts, identity, permissions, tenant context, domain workflows, sensitive data, audit history ve deployment constraints bir araya geldiğinde alınması gereken mühendislik kararlarını belgeler.
 
-Bir backend'in birden fazla kiracıyı, hassas veriyi, yetkili kullanıcıları, servis hesaplarını, denetim geçmişini ve gelecekteki modülleri desteklemesi gerektiğinde ortaya çıkan problemleri ele alır:
+### Full-stack uygulama çalışması
 
-- kiracı yalıtımı ve kiracı kapsamlı veri erişimi
-- veritabanı destekli tarayıcı oturumları ve açık API/mobil erişim akışları
-- servis hesapları için güvenli sınırlar
-- merkezi ve varsayılan olarak reddeden yetkilendirme
-- RBAC, ABAC, ReBAC ve PBAC erişim kontrolü yaklaşımları
-- yanıt sadeleştirme ve alan filtreleme
-- dayanıklı denetim/güvenlik iş kuyruğu
-- kurcalamayı belli eden denetim kayıt zinciri
-- OpenAPI ve rota sözleşmesi doğrulaması
-- entegrasyon, kötüye kullanım senaryosu, eşzamanlılık ve performans duman testi doğrulamaları
-- konteyner ve dağıtım hazırlığı konuları
+Aktif private proje şu alanları içerir:
+
+- Vite, React ve TypeScript ile ayrı `frontend/` workspace
+- uygulama routing'i ve route-level loading sınırları için TanStack Router
+- server-state query/mutation, scoped query keys ve cache invalidation için TanStack Query
+- dialog, tab, select, menu gibi davranış ağırlıklı erişilebilir yüzeyler için Radix Primitives
+- kullanıcıya gösterilen sistem metinleri için i18next/react-i18next
+- ağır görsel component platform yerine design-token-driven styling
+- credentialed request, CSRF handling ve normalize API error davranışları olan küçük project-owned Fetch API wrapper
+- permission-aware ERP navigation ve route shaping
+- gerçek browser login/session/cookie/CSRF/bootstrap integration smoke akışları
+- Business Partners, Customer Accounts, Catalog, Sales, Dashboard, Preferences/Settings ve admin foundation yüzeyleri
+
+Frontend aktif geliştirme aşamasındadır. Bazı akışlar gerçek API ile bağlıyken bazı yüzeyler hâlâ adapter-backed, deferred veya daha geniş ürün tamamlanmadan önce hardening aşamasındadır. Public case study, bugün gerçekten var olanlarla yalnızca planlananları özellikle ayırır.
+
+### Backend mühendislik çalışması
+
+Backend foundation, multi-tenant enterprise sistemlerde önemli hale gelen şu konulara odaklanır:
+
+- tenant isolation ve tenant-scoped data access
+- DB-backed browser session ve ayrı API/mobile token akışları
+- refresh-token rotation ve reuse classification
+- TOTP MFA ve recovery-code safety
+- machine client'lar için service-account boundaries
+- merkezi deny-by-default authorization
+- RBAC, ABAC, ReBAC ve PBAC yaklaşımları
+- response minimization ve field projection
+- durable audit/security outbox processing
+- tamper-evident audit hash-chain design
+- OpenAPI ve route-contract validation
+- integration, security-abuse, concurrency ve performance smoke validation
+- container ve deployment-readiness konuları
 
 ## Mimariye Hızlı Bakış
 
 ```mermaid
 flowchart TD
-    Client[Tarayıcı / API / Servis İstemcisi] --> API[Express API]
-    API --> State[İstek Durumu]
-    State --> Auth[Kimlik Doğrulama]
-    Auth --> Context[İstek Bağlamı]
-    Context --> Scope[Erişim Kapsamı]
-    Scope --> Permission[Yetki Karar Motoru]
-    Permission --> Controller[Modül Controller Katmanı]
-    Controller --> Service[Modül Servis Katmanı]
+    Browser[React ERP Frontend] --> Client[Project-owned Fetch Client]
+    Client --> API[Express API]
+    API --> State[Request State]
+    State --> Auth[Session / JWT / Service Account Auth]
+    Auth --> Context[Tenant + Request Context]
+    Context --> Scope[Access Scope Builder]
+    Scope --> Permission[Permission Engine]
+    Permission --> Controller[Module Controllers]
+    Controller --> Service[Module Services]
     Service --> Prisma[Prisma]
     Prisma --> DB[(PostgreSQL)]
-    Service --> Outbox[Denetim / Güvenlik İş Kuyruğu]
-    Outbox --> Worker[Worker Süreci]
-    Worker --> Audit[(Denetim Kayıtları / Güvenlik Olayları)]
+    Service --> Outbox[Audit / Security Outbox]
+    Outbox --> Worker[Worker Process]
+    Worker --> Audit[(Audit Logs / Security Events)]
 ```
 
-Temel fikir basit: iş modülleri kendi güvenlik kurallarını uydurmamalıdır. Hepsi aynı kimlik doğrulama, kiracı bağlamı, yetki değerlendirmesi, doğrulama, alan filtreleme ve denetim yollarından geçmelidir.
+Temel fikir: frontend kolaylığı backend otoritesinin yerini almaz. Browser permissions/capabilities bilgisine göre UX'i şekillendirebilir; fakat tenant boundaries, authorization, sensitive-field decisions, lifecycle rules ve authoritative validation sunucu tarafında kalır.
 
-## Mühendislik Kanıtı
+## Güncel Frontend Kanıtı
+
+Private repository içinde yalnızca frontend planı değil, gerçek bir frontend workspace bulunmaktadır. Temsili implementation evidence:
+
+- React application bootstrap ve provider composition
+- lazy-loaded ERP sayfalarına sahip TanStack Router route tree
+- TanStack Query query/mutation hooks ve scoped cache invalidation
+- erişilebilir Radix dialog kullanan Business Partners list/detail/create akışları
+- `react-i18next` üzerinden localized UI text
+- CSRF ve normalized API error handling içeren credentialed Fetch wrapper
+- browser session setup ve API-backed bootstrap smoke flow
+- ayrı feature, domain, shared, app, i18n ve style sınırları
+
+Seçilmiş frontend mimarisi ayrıca OpenAPI-derived TypeScript types ve gerektiğinde local Zod tabanlı UX validation hedeflerini içerir. Bunlar mimari hedeflerdir; her planlanan frontend foundation maddesinin bugün tamamlandığı anlamına gelmez.
+
+Detaylar için: [Frontend Mimari ve Entegrasyon](./docs/tr/frontend-architecture-and-integration.md)
+
+## Backend Mühendislik Kanıtı
 
 | Konu | Case-study kanıtı |
 |---|---|
-| Kiracı yalıtımı | Kiracı sınırı, iş izinlerinden önce gelen bir güvenlik sınırı olarak ele alınır. |
-| Yetkilendirme | Erişim kararları merkezi verilir ve gerekli sunucu tarafından doğrulanan bilgiler eksikse güvenli biçimde reddeder. |
-| Yetki karar motoru | Aktör tipi, kiracı sınırı, rota izni, kapsam kısıtları, ilişki kontrolleri, kiracı politikaları, oturum güven düzeyi ve kaynak bilgileri tek karar noktasında birleşir. |
-| Hassas veri görünürlüğü | Yanıtlar ham ORM nesnesi döndürmek yerine sınıflandırma ve alan filtreleme etrafında tasarlanır. |
-| Denetlenebilirlik | Denetim kayıtları ve güvenlik olayları ayrılır, iş kuyruğu üzerinden işlenir ve kurcalamayı belli eden kayıt zinciri ile desteklenir. |
-| Doğrulama | Özel repo; CI, temiz veritabanı, entegrasyon, kötüye kullanım senaryosu, yanıt sızıntısı, eşzamanlılık ve platform kontrolleri kayıtlarını içerir. |
-| Dürüst üretim durumu | Public dokümanlar neyin kanıtlanmadığını açıkça söyler: dış denetim yok, canlı müşteri kullanımı yok, public çalıştırılabilir kaynak yok, üretim sertifikası yok. |
+| Tenant isolation | Tenant boundary, business permission'lardan önce gelen bir güvenlik sınırı olarak ele alınır. |
+| Authorization | Erişim kararları merkezidir; gerekli server-derived facts eksikse güvenli biçimde reddeder. |
+| Permission engine | Principal type, tenant boundary, route permission, scoped grants, relationship checks, tenant policies, session trust ve resource facts tek karar noktasında birleşir. |
+| Auth/session safety | Browser-cookie, API token, refresh-token rotation/reuse ve MFA concurrency akışları ayrı riskler olarak ele alınır. |
+| Sensitive data exposure | Response'lar ham ORM object yerine classification ve projection etrafında tasarlanır. |
+| Auditability | Audit logs ve security events ayrılır; outbox üzerinden işlenir ve tamper-evident hash-chain verification ile desteklenir. |
+| Validation | Private repo CI, fresh database, integration, security-abuse, response-leak, concurrency ve platform kontrolleri içerir. |
+| Dürüst production durumu | External audit, live customer usage, public runnable source ve production certification olmadığı açıkça belirtilir. |
 
 ## Case Study Dokümanları
 
 | Doküman | Ne anlatır? |
 |---|---|
-| [Terimler ve Yazım Standardı](./docs/tr/terimler.md) | Türkçe dokümanlarda teknik terimlerin nasıl kullanılacağı. |
-| [Mimari Genel Bakış](./docs/tr/architecture-overview.md) | Sistem katmanları, istek akışı, modül sözleşmesi ve ortak güvenlik noktalarının neden önemli olduğu. |
-| [Güvenlik Modeli](./docs/tr/security-model.md) | Güvenlik hedefleri, korunan varlıklar, güven sınırları, ana riskler ve kontroller. |
-| [Yetkilendirme Modeli](./docs/tr/authorization-model.md) | RBAC/ABAC/ReBAC/PBAC, kiracı sınırı kontrolleri, kapsamlı yetkiler ve servis hesabı kuralları. |
-| [Yetki Karar Motoru Akışı](./docs/tr/permission-engine-decision-flow.md) | Merkezi yetkilendirme karar sürecinin adım adım açıklaması. |
-| [Denetim ve Bütünlük](./docs/tr/audit-integrity.md) | Denetim/güvenlik olayı ayrımı, iş kuyruğu, kayıt zinciri tasarımı ve kurcalama tespiti sınırları. |
-| [Veri Sınıflandırma](./docs/tr/data-classification.md) | Yanıt sadeleştirme, alan filtreleme ve kişisel/gizli/güvenliğe duyarlı alanların güvenli ele alınması. |
-| [Test ve Doğrulama](./docs/tr/testing-and-validation.md) | Doğrulama matrisi, regresyon bulguları, private/local doğrulama kapsamı ve bu kontrollerin neyi kanıtlamadığı. |
-| [Dağıtım Notları](./docs/tr/deployment-notes.md) | Çalışma zamanı yapısı, konteyner sertleştirme, CI/CD kontrolleri, ortam doğrulama ve operasyonel boşluklar. |
-| [Sınırlar](./docs/tr/limitations.md) | Özel kaynak kod, yerel doğrulama, AI desteği, üretim kullanımı ve gelecek çalışma konularında dürüst sınırlar. |
-| [Öğrenilen Dersler](./docs/tr/lessons-learned.md) | Mimari inceleme, sertleştirme, doğrulama ve AI destekli geliştirme sürecinden öğrenilen pratik dersler. |
-| [Portfolyo Konumlandırma](./docs/tr/portfolio-positioning.md) | CV, LinkedIn ve görüşmelerde bu çalışmanın nasıl sunulacağı. |
-| [Görüşme Anlatım Rehberi](./docs/tr/interview-walkthrough.md) | Private kodu açmadan teknik görüşmede projeyi anlatmak için rehber. |
+| [Frontend Mimari ve Entegrasyon](./docs/tr/frontend-architecture-and-integration.md) | Güncel frontend stack'i, gerçek uygulama sınırları, API integration ve implemented/planned ayrımı. |
+| [Backend Mimari Genel Bakış](./docs/tr/architecture-overview.md) | Backend katmanları, request pipeline, module contract ve ortak enforcement noktaları. |
+| [Güvenlik Modeli](./docs/tr/security-model.md) | Güvenlik hedefleri, korunan varlıklar, trust boundaries, ana riskler ve kontroller. |
+| [Yetkilendirme Modeli](./docs/tr/authorization-model.md) | RBAC/ABAC/ReBAC/PBAC, tenant boundary checks, scoped permissions ve service-account kuralları. |
+| [Yetki Karar Motoru Akışı](./docs/tr/permission-engine-decision-flow.md) | Merkezi authorization karar sürecinin adım adım açıklaması. |
+| [Denetim ve Bütünlük](./docs/tr/audit-integrity.md) | Audit/security ayrımı, outbox processing, hash-chain design ve tamper-evidence sınırları. |
+| [Veri Sınıflandırma](./docs/tr/data-classification.md) | Response minimization, field projection ve sensitive alanların güvenli ele alınması. |
+| [Test ve Doğrulama](./docs/tr/testing-and-validation.md) | Validation matrix, regresyon bulguları, private validation scope ve kontrollerin neyi kanıtlamadığı. |
+| [Dağıtım Notları](./docs/tr/deployment-notes.md) | Runtime shape, container hardening, CI/CD checks, environment validation ve operasyonel boşluklar. |
+| [Sınırlar](./docs/tr/limitations.md) | Private source, frontend maturity, validation, AI assistance ve production usage sınırları. |
+| [Öğrenilen Dersler](./docs/tr/lessons-learned.md) | Architecture review, hardening, validation ve AI-assisted development'tan öğrenilen dersler. |
+| [Portfolyo Konumlandırma](./docs/tr/portfolio-positioning.md) | CV, LinkedIn, GitHub ve görüşmelerde güncel full-stack projenin nasıl sunulacağı. |
+| [Görüşme Anlatım Rehberi](./docs/tr/interview-walkthrough.md) | Private kodu açmadan projeyi teknik görüşmede anlatma yolu. |
 
 ## Teknoloji Yığını
 
-Özel uygulama, aşağıdaki yığın ve kavramları kullanmıştır:
+### Frontend — güncel implementation
+
+- React
+- TypeScript
+- Vite
+- TanStack Router
+- TanStack Query
+- Radix Primitives
+- i18next / react-i18next
+- küçük project-owned client üzerinden Fetch API
+- design-token CSS
+- Lucide icons
+
+### Backend
 
 - TypeScript
 - Node.js
@@ -103,38 +159,49 @@ Temel fikir basit: iş modülleri kendi güvenlik kurallarını uydurmamalıdır
 - OpenAPI
 - Docker
 - Node test runner
-- CI tarzı doğrulama, entegrasyon testleri ve güvenlik/eşzamanlılık kontrolleri
+- CI-style validation, integration tests ve security/concurrency checks
 
 ## Bu Repository Nasıl Okunmalı?
 
-Bu repoyu bir **case-study klasörü** gibi okunmalıdır, bir codebase gibi değil.
+Bu repo bir uygulama codebase'i değil, **case-study ve engineering-evidence klasörü** olarak okunmalıdır.
 
-Önerilen okuma sırası:
+Önerilen sıra:
 
-1. Bu README ile başlanır.
-2. Terim standardı için [Terimler ve Yazım Standardı](./docs/tr/terimler.md) dosyasına bakılır.
-3. Sistem şeklini anlamak için [Mimari Genel Bakış](./docs/tr/architecture-overview.md) dosyası okunur.
-4. Ana güvenlik kararlarını anlamak için [Güvenlik Modeli](./docs/tr/security-model.md), [Yetkilendirme Modeli](./docs/tr/authorization-model.md) ve [Yetki Karar Motoru Akışı](./docs/tr/permission-engine-decision-flow.md) dosyaları okunur.
-5. İddiaların nasıl kontrol edildiğini görmek için [Test ve Doğrulama](./docs/tr/testing-and-validation.md) dosyası okunur.
-6. Neyin iddia edilmediğini anlamak için [Sınırlar](./docs/tr/limitations.md) dosyası okunur.
-7. Kısa görüşme anlatımı için [Görüşme Anlatım Rehberi](./docs/tr/interview-walkthrough.md) dosyası kullanılır.
+1. Güncel proje kapsamı için bu README.
+2. Full-stack gelişimi ve frontend kanıtı için [Frontend Mimari ve Entegrasyon](./docs/tr/frontend-architecture-and-integration.md).
+3. Backend foundation için [Backend Mimari Genel Bakış](./docs/tr/architecture-overview.md).
+4. Ana güvenlik kararları için [Güvenlik Modeli](./docs/tr/security-model.md), [Yetkilendirme Modeli](./docs/tr/authorization-model.md) ve [Yetki Karar Motoru Akışı](./docs/tr/permission-engine-decision-flow.md).
+5. İddiaların nasıl kontrol edildiği için [Test ve Doğrulama](./docs/tr/testing-and-validation.md).
+6. Neyin iddia edilmediği için [Sınırlar](./docs/tr/limitations.md).
+7. Teknik görüşme anlatımı için [Görüşme Anlatım Rehberi](./docs/tr/interview-walkthrough.md).
 
 ## Kaynak Kod Politikası
 
-Tam özel uygulama burada yayınlanmamıştır; çünkü gelecekte ticari veya alan odaklı ürünlere temel olarak yeniden kullanılabilir.
+Tam private implementation burada yayınlanmamıştır; çünkü gelecekte ticari veya domain-specific ürünler için yeniden kullanılabilir.
 
-Bu repository bilinçli olarak tam kaynak kod, özel uygulama detayları, veritabanı şemaları, test dosyaları, ham loglar, gizli yapılandırmalar, müşteri verisi, ticari ürün planları veya çalıştırılabilir public başlangıç şablonu içermez.
+Bu repository bilinçli olarak şunları içermez:
+
+- full backend ve frontend source code
+- private implementation details
+- database schema files
+- test files ve raw logs
+- deployment secrets
+- customer data
+- commercial product plans
+- runnable public starter application
+
+Uygun olduğunda seçilmiş implementation detayları teknik görüşmelerde açıklanabilir.
 
 ## AI Destekli Geliştirme Açıklaması
 
-Bu bir AI destekli mühendislik case study'sidir.
+Bu bir AI-assisted engineering case study'sidir.
 
-AI araçları üretim, inceleme, sertleştirme ve dokümantasyon aşamalarında kullanıldı. Benim rolüm gereksinimleri belirlemek, mimariyi değerlendirmek, doğrulama komutlarını çalıştırmak, sonuçları yorumlamak, uç durumları bulmak, kararları belgelemek ve sertleştirme sürecini yönlendirmekti.
+AI araçları generation, review, hardening, implementation support ve documentation aşamalarında kullanılmıştır. Benim rolüm; requirements belirlemek, architecture değerlendirmek, validation komutlarını çalıştırmak, sonuçları yorumlamak, edge case'leri bulmak, implementation behavior incelemek, kararları belgelemek ve hardening yönünü belirlemekti.
 
-Repository; her uygulama detayının sıfırdan manuel yazıldığı iddiası değil, dürüst bir mimari, doğrulama ve öğrenme çalışması olarak okunmalıdır.
+Repository, her implementation detayının sıfırdan tamamen manuel yazıldığı iddiası değil; engineering judgment, validation, iterative development ve learning sürecinin dürüst kaydı olarak okunmalıdır.
 
 ## Durum
 
-Bu, özel kaynak kodlu ve aktif geliştirme aşamasındaki backend altyapı temeli için public portfolyo çalışmasıdır.
+Alttaki private proje, güçlü bir backend foundation üzerinde gelişen **aktif full-stack ERP/SaaS platformudur**.
 
-Tasarım hedefleri açısından **üretim ortamına hazırlık hedeflidir (production-oriented)**; ancak **üretim sertifikalı, dış denetimden geçmiş veya canlı kurumsal ürün** olarak sunulmamaktadır.
+Mühendislik hedefleri açısından **production-oriented**'dır; ancak **production-certified, externally audited, tamamen bitmiş veya canlı enterprise customer'lar tarafından kullanılan ürün** olarak sunulmamaktadır.
