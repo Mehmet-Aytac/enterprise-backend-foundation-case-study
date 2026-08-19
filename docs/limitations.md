@@ -1,89 +1,113 @@
 # Limitations
 
-This case study documents a private active-development prototype and its validation process.
+This case study documents a private, active-development full-stack ERP/SaaS project and its engineering/validation process.
 
-It should not be read as a claim that the private project is a finished commercial product, certified enterprise platform, or externally audited production system.
+It should not be read as a claim that the private project is a finished commercial product, a certified enterprise platform, an externally audited production system, or a publicly reproducible application.
 
 ## Source Code Is Private
 
-The full implementation is not included in this public repository.
+The full backend and frontend implementation is not included in this public repository.
 
-That means readers cannot independently run the application, execute the test suite, inspect every implementation detail, or reproduce the full validation process from this repository alone.
+Readers therefore cannot independently run the complete application, execute the private test suite, inspect every implementation detail, or reproduce the full validation process from this repository alone.
 
-The public repository is intended to summarize the design and review process, not to serve as a runnable open-source framework.
+The public repository summarizes architecture, implementation evidence, review findings, tradeoffs, and limitations. It is not a runnable open-source framework or product release.
 
-## Validation Is Local, Not External Certification
+## Frontend Is Active Development
 
-The private prototype was validated with local and repository-level checks, including unit tests, integration tests, abuse-case scenarios, audit hash-chain verification, performance smoke checks, dependency review, and container-oriented checks.
+The private project now contains a real React frontend workspace and real browser/API integration work, but the frontend is not complete.
 
-These checks are valuable, but they do not replace:
+Current evidence includes routing, server-state patterns, localization, accessible UI primitives, a project-owned Fetch client, CSRF-aware browser requests, session/bootstrap integration smoke paths, and multiple ERP feature boundaries.
 
-- independent external review
-- external architecture review
+However, the case study does **not** claim:
+
+- complete frontend coverage for every backend module
+- complete API-backed behavior for every visible or planned screen
+- complete OpenAPI-derived frontend type-generation coverage
+- complete Zod-based local validation coverage across all forms
+- complete production-grade frontend test coverage
+- external accessibility certification
+
+Some surfaces remain adapter-backed, staged, deferred, or under active hardening.
+
+## Validation Is Internal, Not External Certification
+
+The private project has repository-level and local validation evidence, including unit/integration checks, abuse-case scenarios, response-leak checks, concurrency-sensitive validation, audit hash-chain verification, performance smoke checks, dependency review, CI controls, and container/platform-oriented checks.
+
+These checks are meaningful engineering evidence, but they do not replace:
+
+- independent external code review
+- external architecture/security review
 - compliance certification
 - production incident exercises
 - long-running operational validation
 - realistic production traffic validation
+- external frontend accessibility/usability review
 
-## No Real Customer Usage Yet
+## No Real Customer Production Usage Yet
 
-The private prototype was built as a foundation for future domain modules and possible commercial products.
+The project is being developed as a reusable ERP/SaaS foundation and a base for future domain or vertical products.
 
-It does not yet prove real-world product-market fit, customer adoption, operational support maturity, or production behavior under live customer load.
+It does not yet prove:
 
-## Not A Complete End-User Product
+- live customer adoption
+- production support maturity
+- product-market fit
+- real production behavior under customer load
+- long-term operational reliability
 
-A backend foundation is not a product by itself.
+## Not A Complete End-User ERP Product
 
-It provides platform-level capabilities such as authentication, authorization, auditability, tenant boundaries, response minimization, and validation strategy.
+The project now has both backend and frontend implementation, so it is no longer accurate to describe it as "backend only." It is still not a complete commercial ERP product.
 
-A real business application would still need:
+Broader production readiness would require additional work such as:
 
-- domain-specific workflows
-- user interface
-- reporting
-- onboarding
-- support process
-- deployment operations
-- real user feedback
+- completion and hardening of selected end-user workflows
+- broader end-to-end test coverage
+- reporting/analytics appropriate to the target product
+- onboarding and operational support processes
+- deployment-specific runbooks and observability
+- real-user feedback loops
+- product-specific security and compliance review
+
+The active development plan intentionally defers some broad ERP areas instead of presenting placeholder coverage as finished product functionality.
 
 ## Audit Integrity Has Boundaries
 
 The audit model focuses on tamper evidence at the application level.
 
-It does not make database storage immutable by itself. Stronger guarantees would require external anchoring, protected backups, third-party log export, object-lock storage, or similar operational controls.
+It does not make database storage immutable by itself. Stronger guarantees would require operational controls such as external anchoring, protected backups, third-party log export, object-lock storage, or equivalent infrastructure controls.
 
-This distinction is especially important in self-hosted environments where infrastructure administrators may have direct access to the database and runtime.
+This distinction is especially important in self-hosted environments where infrastructure administrators may have direct access to the database or runtime.
 
 ## AI-Assisted Development
 
-This was an AI-assisted engineering case study.
+This is an AI-assisted engineering case study.
 
-AI tools were used during generation, review, hardening, and documentation. The project should be interpreted as an example of AI-assisted architecture exploration and validation, not as a claim that every implementation detail was authored manually from scratch.
+AI tools have been used during generation, implementation support, review, hardening, and documentation. The ownership claim is not that every line was manually authored without assistance.
 
-The important ownership claim is about requirements, architecture evaluation, validation, edge-case review, documentation, and hardening direction.
+The ownership claim is that requirements, architecture direction, implementation review, validation execution/interpretation, edge-case analysis, tradeoff decisions, documentation, and hardening direction were actively guided and evaluated rather than accepted blindly.
 
-## Future Work Before Production Use
+## Future Work Before Production Claims
 
-Before using the private prototype as a real enterprise production foundation, the following areas would still need additional work:
+Before making stronger production claims, the project would need additional work such as:
 
 - independent external review
 - backup and restore drills
-- configuration rotation procedures
+- credential/configuration rotation procedures
 - production observability dashboards
 - incident runbooks
 - deployment-specific hardening
-- load testing against realistic traffic patterns
-- domain-module-specific threat modeling
-- legal and compliance review depending on the target industry
-- production support and operational ownership model
+- realistic load and endurance testing
+- end-to-end browser workflow testing
+- accessibility review
+- domain-specific threat modeling
+- legal/compliance review depending on target industry
+- production support and ownership model
 
-## Portfolio Interpretation
+## Correct Portfolio Interpretation
 
-This repository is best understood as a technical case study showing how architecture, validation, and hardening concerns were explored in a private backend prototype.
+The most accurate interpretation is:
 
-It is not intended to be presented as a finished commercial product, a certified enterprise system, or a public starter template.
+> Private-source, active-development full-stack ERP/SaaS platform documented through a public architecture, validation, and engineering case study. The backend foundation is comparatively mature and security-focused; the operational React frontend is actively evolving and increasingly exercises the real backend contracts.
 
-The most accurate short description is:
-
-> Private-source, active-development backend foundation documented as a public architecture and validation case study.
+The repository should not be presented as a finished commercial product, externally certified platform, live customer deployment, or public starter framework.
