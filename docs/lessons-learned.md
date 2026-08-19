@@ -1,122 +1,155 @@
 # Lessons Learned
 
-This document summarizes the main lessons from the private enterprise backend foundation case study.
+This document summarizes the main lessons from the private full-stack ERP/SaaS project as it evolved from a backend foundation into an application with a real operational frontend.
 
 ## 1. Architecture Is Easier To Generate Than To Trust
 
 AI-assisted development can produce a large amount of structure quickly.
 
-However, architecture only becomes meaningful when assumptions are tested:
+Architecture only becomes meaningful when assumptions are tested:
 
 - What happens under concurrent requests?
-- What happens when route code forgets a required authorization fact?
+- What happens when authorization facts are missing?
 - What happens when a token is reused?
 - What happens when a response accidentally includes sensitive data?
-- What happens when integration tests run against a dirty database?
+- What happens when a browser flow does not match the backend auth model?
+- What happens when frontend cache behavior ignores tenant or permission boundaries?
 
-The most valuable part of the project was not generating code. It was reviewing behavior, writing targeted tests, finding edge cases, and hardening the system through repeated validation.
+The valuable work is not producing files. It is reviewing behavior, reproducing failure modes, interpreting evidence, and hardening the system repeatedly.
 
-## 2. Security-Sensitive Code Needs Regression Tests
+## 2. Security-Sensitive Code Needs Regression Evidence
 
-The most important issues found during review were not obvious syntax or type errors.
+Important problems are often behavioral rather than syntactic.
 
-They were behavioral edge cases:
+Examples encountered during backend review included:
 
-- scoped authorization checks failing open when required resource facts were missing
-- refresh-token rotation allowing two parallel requests to both succeed
-- MFA recovery code usage needing atomic single-use enforcement
+- scoped authorization failing open when required resource facts were missing
+- refresh-token rotation needing concurrency-safe behavior
+- MFA recovery codes needing atomic single-use enforcement
 - TOTP enrollment verification needing concurrency hardening
-- cookie refresh responses exposing token material in browser flows
+- browser cookie flows needing to avoid exposing token material
 
-These issues required tests that reproduced the failure mode. Without those tests, the fixes would have been much less convincing.
+These kinds of fixes are more convincing when the failure mode can be reproduced and checked again.
 
-## 3. Missing Data Should Usually Fail Closed
+## 3. Missing Security Facts Should Fail Closed
 
-One major authorization lesson was that missing server-derived facts are dangerous.
+If access depends on branch, department, team, ownership, relationship, classification, session trust, or another server-derived fact, those facts must come from trusted data.
 
-If a permission depends on branch, department, team, ownership, relationship, classification, or other resource facts, then those facts must be loaded from trusted server-side data.
+If the system cannot establish the facts required for an allow decision, denial is safer than guessing.
 
-If the route cannot provide the required facts, the permission decision should deny access.
+## 4. Browser Auth And API Auth Affect Both Sides Of The Stack
 
-## 4. Browser Auth And API Token Auth Should Be Separated
+Cookie-based browser authentication and explicit bearer-token API authentication have different risks and different client behavior.
 
-Combining cookie-based browser authentication and explicit token-based API authentication in the same public contract can create confusion.
+Separating them clarified both backend and frontend design:
 
-The private prototype moved toward clearer separation:
+- browser flows use HTTP-only cookies
+- cookie-authenticated mutations require CSRF protection
+- API/mobile flows can use explicit token endpoints
+- browser UI does not need to treat localStorage tokens as the default auth mechanism
+- the frontend HTTP client must reflect the backend transport/security model
 
-- browser login and refresh use HTTP-only cookies
-- API/mobile login and refresh use explicit token endpoints
-- cookie refresh does not return token material in the JSON response body
-- CSRF protection applies to browser cookie mutation flows, not bearer-only API flows
+This became one of the clearest examples of full-stack architecture: a backend security decision directly changes browser implementation.
 
-This made the security model easier to reason about.
+## 5. Frontend Visibility Is Not Authorization
 
-## 5. Tamper-Evident Does Not Mean Immutable
+Permission-aware navigation improves usability, but hiding a route or button does not protect data.
 
-Audit hash chains are useful, but they are not magic.
+The frontend can use bootstrap permissions/capabilities to shape the UI. The backend still has to make the real access decision.
 
-They can help detect application-level modification, deletion, or ordering problems. They do not make a database impossible to alter if someone controls the underlying infrastructure.
+This distinction is easy to say and easy to accidentally violate when frontend and backend are developed separately.
 
-The correct language is tamper-evident, not tamper-proof.
+## 6. Server State Needs Explicit Boundaries
 
-For stronger guarantees, audit data needs operational support such as protected backups, external log export, object-lock storage, SIEM integration, or external hash anchoring.
+ERP interfaces combine filters, lists, detail records, permissions, generated identifiers, mutations, and sensitive projections.
 
-## 6. A Clean Test Database Matters
+TanStack Query made it clearer that these are server-owned facts with cache lifecycles, not ordinary local component variables.
 
-Some integration failures came from dirty local database state rather than from code defects.
+Important lessons include:
 
-That made it clear that integration tests should have a fresh-database mode. A reproducible reset, migration, seed, and test run is important for distinguishing real failures from leftover state.
+- scope query keys by the context that actually changes the data
+- invalidate affected data after successful commands
+- avoid broad caching of sensitive projections
+- keep mutation results and lifecycle rules aligned with backend authority
 
-## 7. Documentation Should Explain Boundaries, Not Just Features
+## 7. A Real Frontend Is A Contract Test For Backend Design
 
-A portfolio project is more credible when it explains what the system does not prove.
+The backend can look elegant while viewed only through route definitions and tests.
 
-The case study became more useful after documenting limitations such as:
+Building the React frontend exposed practical contract questions around:
 
-- no public source code
-- no external security certification
-- no live customer usage yet
-- no absolute immutability guarantee
-- no replacement for penetration testing or operational runbooks
+- bootstrap data
+- session-cookie behavior
+- CSRF
+- normalized errors
+- permission-aware navigation
+- tenant and branch context
+- generated identifiers
+- list/detail query shapes
+- localization and preferences
+- sensitive-field caching
 
-Clear boundaries make the technical claims more believable.
+The frontend therefore did more than add screens. It tested whether the backend was actually consumable as an application platform.
 
-## 8. AI Assistance Still Requires Ownership
+## 8. Tamper-Evident Does Not Mean Immutable
 
-Using AI to generate and review software does not remove the need to understand requirements, inspect behavior, and validate results.
+Audit hash chains can help detect application-level modification, deletion, or ordering problems. They do not make the underlying database impossible to change.
 
-The parts that created real learning were:
+The correct claim is tamper-evident, not tamper-proof.
 
-- asking why a design was safe or unsafe
-- forcing suspected bugs into tests
+Stronger guarantees require operational controls such as protected backups, external log export, object-lock storage, SIEM integration, or external anchoring.
+
+## 9. Documentation Should Separate Implemented Work From Planned Work
+
+A portfolio project becomes less credible when architecture decisions are written as if they are already complete implementation.
+
+The frontend made this especially important because some parts of the selected stack and target architecture are intentionally staged.
+
+The public case study now distinguishes:
+
+- what is implemented today
+- what is selected architecture still being completed
+- what is intentionally deferred
+- what would require external production evidence
+
+This is more useful than a feature list that treats every plan as finished work.
+
+## 10. AI Assistance Still Requires Ownership
+
+Using AI does not remove the need to understand requirements, inspect behavior, challenge assumptions, and validate results.
+
+The parts that created real engineering learning were:
+
+- deciding what should be built
+- asking why a design is safe or unsafe
+- turning suspected bugs into reproducible checks
+- reviewing generated implementation rather than accepting it automatically
 - reading validation output
-- comparing implementation behavior with security claims
-- turning broad architecture claims into specific pass/fail checks
+- comparing frontend behavior with backend contracts
+- documenting tradeoffs and limits
 
-For future work, the most useful AI role is not simply "write the code." It is closer to reviewer, tutor, test designer, and debugging partner.
+A useful AI role is closer to implementation partner, reviewer, test designer, tutor, and debugging assistant than an unquestioned code generator.
 
-## 9. A Foundation Is Not A Product
+## 11. A Foundation Becomes More Valuable When A Real Product Surface Uses It
 
-The private prototype contains platform-level capabilities, but it is not a useful end-user product by itself.
+The backend foundation was valuable on its own, but the project changed when a real frontend began consuming it.
 
-A real product would still need:
+The operational UI forced abstract platform decisions to become concrete:
 
-- a domain workflow
-- a user interface
-- onboarding
-- reports
-- support process
-- customer validation
-- deployment operations
+- auth had to work in a browser
+- permissions had to shape UX without replacing authorization
+- tenant/branch context had to flow through queries and routes
+- API errors had to become usable UI states
+- domain contracts had to support real forms and lists
 
-The foundation can reduce risk for future modules, but it does not replace the need to build and validate a real user-facing workflow.
+The strongest portfolio signal is now the connection between the reusable backend foundation and the evolving user-facing application.
 
-## 10. The Best Portfolio Framing Is A Case Study
+## 12. The Best Portfolio Framing Changes As The Project Changes
 
-Because the source code is private and the project was AI-assisted, the most honest and professional framing is not "open-source template" or "finished product."
+The old framing—"private backend architecture and security-hardening case study"—was accurate when the project was backend-only.
 
-The best framing is:
+The current framing is broader and more accurate:
 
-> A private, AI-assisted backend architecture and security-hardening case study.
+> A private, AI-assisted, active-development full-stack ERP/SaaS engineering case study, with a security-focused multi-tenant backend foundation and an operational React frontend that is progressively exercising the real backend contracts.
 
-That framing allows the work to show architecture thinking, validation discipline, and security awareness without overstating authorship or production readiness.
+That framing preserves the backend depth without hiding the real frontend work or pretending the overall product is complete.
