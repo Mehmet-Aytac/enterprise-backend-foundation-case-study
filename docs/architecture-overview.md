@@ -1,48 +1,52 @@
-# Architecture Overview
+# Backend Architecture Overview
 
-This document explains the conceptual architecture behind the private enterprise backend foundation.
+This document explains the backend architecture behind the private full-stack ERP/SaaS project.
+
+The project originally began as a reusable backend foundation and later expanded with a separate operational React frontend. This file intentionally remains a **backend deep dive**. For the frontend side, see [Frontend Architecture and Integration](./frontend-architecture-and-integration.md).
 
 The public repository does not include source code. The goal is to show the structure, boundaries, and engineering decisions clearly enough for portfolio review and technical discussion.
 
 ## Design Goal
 
-The private project is an active-development, production-oriented backend foundation for multi-tenant ERP and internal business applications.
+The private project is an active-development, production-oriented multi-tenant ERP/SaaS platform. Its backend foundation is designed so current and future domain modules can reuse the same security, tenancy, validation, audit, and operational controls instead of rebuilding them independently.
 
-It is not framed as a finished commercial product. It is a reusable foundation meant to support future domain modules without forcing each module to rebuild the same security, tenancy, validation, and audit controls.
+It is not framed as a finished commercial product or a certified production platform.
 
-The foundation focuses on platform concerns such as:
+The backend focuses on:
 
-- authentication
+- authentication and session security
 - authorization
 - tenant isolation
 - audit and security logging
-- response minimization
+- response minimization and field projection
 - request validation
 - error handling
 - observability
 - deployment readiness
-- regression testing for security-sensitive behavior
+- security-sensitive regression testing
+- reusable module boundaries
 
-The main idea is simple: future modules should be able to add business behavior while reusing the same trusted security pipeline.
+The main idea is simple: domain behavior can vary, but shared security and governance controls should not be optional habits.
 
-## High-Level Runtime Shape
+## Full-Stack Runtime Context
 
 ```mermaid
 flowchart TD
-    Client[Client] --> API[Express API Process]
+    Frontend[React ERP Frontend] --> Client[Credentialed Fetch Client]
+    Client --> API[Express API Process]
     API --> Middleware[Middleware Pipeline]
     Middleware --> Auth[Auth Resolution]
     Auth --> Permission[Permission Engine]
     Permission --> Modules[Domain Modules]
     Modules --> Database[(PostgreSQL)]
-    Modules --> Outbox[Audit/Security Outbox]
+    Modules --> Outbox[Audit / Security Outbox]
     Outbox --> Worker[Worker Process]
     Worker --> Audit[(Audit Logs / Security Events)]
 ```
 
-The private implementation separated the request path from background audit/security materialization. The API process handles HTTP requests. A worker process dispatches durable outbox records into audit and security event storage.
+The frontend can use bootstrap, capability, and permission information to shape the user experience, but backend authorization remains authoritative. A hidden button is not a security control.
 
-## Conceptual Layers
+## Backend Layers
 
 ### Core Layer
 
@@ -54,31 +58,30 @@ The core layer contains cross-cutting rules that modules should not reimplement 
 - tenant and governance helpers
 - audit/security event services
 - middleware for request state, authorization, CSRF, rate limiting, body/content-type checks, and error handling
-- response classification and field projection helpers
-- shared utilities for safe application behavior
+- response classification and field-projection helpers
+- shared safe-application utilities
 
-This layer is the application equivalent of a building's foundation. If every floor builds its own foundation, the building becomes unsafe. In this project, modules are expected to stand on one shared foundation.
+This layer is the application equivalent of a building foundation. If every floor builds its own foundation, the overall structure becomes inconsistent and unsafe.
 
 ### Infrastructure Layer
 
-The infrastructure layer isolates runtime-facing concerns:
+The infrastructure layer isolates runtime-facing concerns such as:
 
 - environment validation
 - database client setup
-- logging
-- telemetry
+- logging and telemetry
 - password hashing
 - token signing
 - cryptographic helpers
 - notification/delivery adapters where needed
 
-The goal is to keep framework and platform details from leaking into business modules more than necessary.
+The goal is to keep infrastructure and platform details from leaking into domain logic more than necessary.
 
 ### Module Layer
 
-The module layer contains API-facing features and future business/domain modules.
+The module layer contains API-facing business capabilities.
 
-Each module follows a predictable shape:
+A representative module shape is:
 
 ```text
 src/modules/<module-key>/
@@ -89,100 +92,101 @@ src/modules/<module-key>/
   <module-key>.types.ts
 ```
 
-Optional files can exist when they have precise responsibilities, such as access-fact resolution, response projection, audit helpers, state machines, or calculation engines.
+Optional files are added for precise responsibilities such as access-fact resolution, response projection, audit helpers, state machines, or calculation engines.
 
 The intended dependency rule is:
 
 ```text
 modules -> core + infrastructure
-modules -x-> direct module-to-module shortcuts
+modules -x-> uncontrolled module-to-module shortcuts
 ```
 
-Direct module-to-module shortcuts are avoided because they can accidentally bypass authorization, tenant checks, audit behavior, or projection rules.
+Direct shortcuts are avoided because they can accidentally bypass authorization, tenant checks, auditing, or projection rules.
 
 ### Worker and Tooling Layer
 
-The private prototype also used non-request-path processes and tools:
+The private implementation also uses processes and tools outside the synchronous request path, including:
 
 - audit/security outbox worker
 - audit hash-chain verification
-- service-account bootstrap tooling
-- authentication hot-path benchmark
+- service-account tooling
+- authentication hot-path benchmarks
 - concurrent API smoke testing
 - OpenAPI contract validation
 - CI-style verification commands
 
-These tools are important because enterprise backend quality is not only about route handlers. It also depends on repeatable validation, safe operational behavior, and failure visibility.
+Enterprise backend quality is not only about route handlers. Repeatable validation, failure visibility, and operational behavior matter as well.
 
 ## Request Pipeline
 
-The request pipeline is designed so that business logic runs only after the request has a safe security context.
+Business logic is expected to run only after the request has a trustworthy security context.
 
 Conceptual order:
 
 1. Initialize request state.
 2. Authenticate browser session, bearer token, or service-account token.
 3. Resolve the authenticated principal.
-4. Build trusted request context.
+4. Build trusted request and tenant context.
 5. Build access scope.
 6. Enforce route permission.
-7. Execute controller and service logic.
-8. Write audit/security events when required.
-9. Return a projected and classified response.
+7. Execute controller/service behavior.
+8. Persist business data with tenant-safe constraints.
+9. Write or enqueue audit/security evidence when required.
+10. Return a classified and projected response.
 
 ```mermaid
 sequenceDiagram
-    participant C as Client
-    participant A as API
+    participant F as React Frontend / API Client
+    participant A as Express API
     participant Auth as Auth Guard
     participant P as Permission Engine
     participant M as Module Service
     participant DB as PostgreSQL
     participant O as Audit Outbox
 
-    C->>A: HTTP request
+    F->>A: HTTP request
     A->>Auth: Resolve session/token/principal
     Auth->>P: Build context and access scope
     P-->>A: Allow or deny
     A->>M: Execute business operation
     M->>DB: Tenant-scoped read/write
-    M->>O: Enqueue audit/security event
-    A-->>C: Projected response
+    M->>O: Enqueue audit/security event when required
+    A-->>F: Projected response
 ```
 
-Controllers should not make permission decisions themselves. Routes declare the required permission, and the permission engine evaluates the request using server-derived facts.
+Controllers do not become the source of permission decisions. Routes declare required access, and the permission engine evaluates trusted server-derived facts.
 
 ## Domain Module Contract
 
-A future domain module is expected to follow these rules:
+A domain module is expected to follow rules such as:
 
-- validate request input before business logic
-- receive tenant context from authenticated request state, not request body input
+- validate input before business logic
+- derive tenant context from authenticated request state rather than request body input
 - load ownership, branch, team, classification, and relationship facts server-side
 - declare explicit route permissions
 - fail closed when required authorization facts cannot be resolved
 - use field projection for sensitive response fields
-- write audit/security events for high-impact actions
+- write audit/security evidence for high-impact actions
 - document routes in OpenAPI
 - add tests for tenant boundaries, authorization failures, validation, response leaks, audit/outbox behavior, and concurrency-sensitive cases
 
-This is the safety contract that makes the foundation reusable.
+This is the safety contract that makes the backend reusable across different ERP and vertical-product modules.
 
 ## Why This Structure Matters
 
-In multi-tenant business systems, the dangerous bugs are often small local shortcuts:
+In multi-tenant business systems, dangerous failures often begin as small local shortcuts:
 
 - one query forgets tenant scope
-- one endpoint trusts a client-supplied owner ID
+- one endpoint trusts a client-supplied owner or branch fact
 - one route bypasses permission middleware
 - one controller returns a raw ORM object
-- one module writes business data but skips audit evidence
-- one token flow handles browser and API clients too loosely
+- one mutation updates business data but skips audit evidence
+- one browser flow treats client-side visibility as authorization
 
-The architecture attempts to reduce those risks by making authentication, authorization, tenant isolation, projection, auditing, and validation reusable defaults rather than optional habits.
+The architecture attempts to reduce those risks by making authentication, tenant context, authorization, projection, auditing, and validation reusable defaults.
 
 ## Portfolio Takeaway
 
-This project is strongest when described as a backend foundation case study, not as a simple ERP screen project.
+This backend remains one of the strongest technical parts of the project, but it is no longer the whole project.
 
-The valuable part is the system thinking: boundaries, central enforcement, failure modes, validation, and honest production-readiness limits.
+The current portfolio story is a **full-stack ERP/SaaS platform built on a security-conscious multi-tenant backend foundation**, with the frontend now exercising real browser-session, API-contract, permission-aware, and ERP workflow concerns.
